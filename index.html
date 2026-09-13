@@ -75,13 +75,13 @@
   body{
     margin:0; background:var(--page); color:var(--text-primary);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    padding-bottom:48px;
+    padding-bottom:80px;
   }
   .wrap{ max-width:1180px; margin:0 auto; padding:20px 16px 0; }
 
   header.top{
     display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px;
-    margin-bottom:16px;
+    margin-bottom:14px;
   }
   header.top h1{ font-size:20px; margin:0 0 4px; }
   header.top p{ margin:0; color:var(--text-secondary); font-size:13px; }
@@ -93,6 +93,15 @@
     padding:6px 12px; border-radius:8px; font-size:13px; cursor:pointer;
   }
   #refreshBtn:hover{ border-color:var(--accent); }
+
+  /* Tabs */
+  .tabs{ display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .tab-btn{
+    border:none; background:none; color:var(--text-secondary); font-size:14px; font-weight:600;
+    padding:9px 4px; margin-right:16px; cursor:pointer; border-bottom:2px solid transparent;
+  }
+  .tab-btn[aria-selected="true"]{ color:var(--text-primary); border-bottom-color:var(--accent); }
+  .tab-panel[hidden]{ display:none; }
 
   .stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:18px; }
   .stat-tile{
@@ -187,6 +196,81 @@
 
   footer.legal{ text-align:center; color:var(--muted); font-size:11px; margin-top:16px; }
 
+  /* Quote add button + panel */
+  .add-btn{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+    padding:5px 10px; border-radius:7px; font-size:12px; cursor:pointer; white-space:nowrap;
+  }
+  .add-btn[data-added="true"]{ border-color:var(--good); color:var(--good); font-weight:600; }
+
+  #quoteBar{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    background:var(--surface-2); border-top:1px solid var(--border);
+    box-shadow:0 -4px 16px rgba(0,0,0,0.12);
+  }
+  #quoteBarHead{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 16px; cursor:pointer; max-width:1180px; margin:0 auto;
+  }
+  #quoteBarHead .left{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; }
+  #quoteBarHead .count{
+    background:var(--accent); color:#fff; border-radius:999px; font-size:11px; padding:1px 7px; font-weight:700;
+  }
+  #quoteBarHead .total{ font-variant-numeric:tabular-nums; font-weight:700; }
+  #quotePanel{ max-width:1180px; margin:0 auto; padding:0 16px 14px; max-height:46vh; overflow-y:auto; }
+  #quotePanel[hidden]{ display:none; }
+  .quote-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--gridline); font-size:13px; }
+  .quote-row .qcode{ font-weight:600; flex:1; min-width:0; }
+  .quote-row .qcode small{ display:block; font-weight:400; color:var(--text-secondary); font-size:11px; }
+  .qty-step{ display:flex; align-items:center; gap:6px; }
+  .qty-step button{
+    width:22px; height:22px; border-radius:6px; border:1px solid var(--border); background:var(--surface-1);
+    color:var(--text-primary); cursor:pointer; font-size:13px; line-height:1;
+  }
+  .quote-row .qprice{ width:80px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .quote-row .qremove{ border:none; background:none; color:var(--critical); cursor:pointer; font-size:16px; padding:2px 4px; }
+  .quote-actions{ display:flex; gap:8px; padding-top:10px; }
+  .quote-actions button{
+    border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary);
+    padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer;
+  }
+  .quote-empty{ padding:14px 0; color:var(--text-secondary); font-size:13px; }
+
+  /* Detail / edit tab */
+  .gate{
+    max-width:340px; margin:60px auto; text-align:center; background:var(--surface-1);
+    border:1px solid var(--border); border-radius:12px; padding:24px;
+  }
+  .gate input{
+    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text-primary); font-size:14px; margin:12px 0 8px;
+  }
+  .gate button{
+    background:var(--accent); color:#fff; border:none; padding:8px 16px; border-radius:8px;
+    font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .gate .err{ color:var(--critical); font-size:12px; min-height:16px; }
+
+  .edit-toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .edit-toolbar .msg{ font-size:12px; color:var(--text-secondary); }
+  #saveAllBtn{
+    background:var(--accent); color:#fff; border:none; padding:8px 16px; border-radius:8px;
+    font-size:13px; cursor:pointer; font-weight:600;
+  }
+  #saveAllBtn:disabled{ opacity:.4; cursor:default; }
+  #addProductBtn{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+    padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer;
+  }
+  table.edit-table input[type="text"], table.edit-table input[type="number"]{
+    width:100%; min-width:64px; background:var(--surface-2); color:var(--text-primary);
+    border:1px solid transparent; border-radius:6px; padding:5px 6px; font-size:12px;
+  }
+  table.edit-table input:focus{ border-color:var(--accent); outline:none; }
+  table.edit-table tr.dirty td{ background:color-mix(in srgb, var(--warning) 8%, transparent); }
+  .del-btn{ border:none; background:none; color:var(--critical); cursor:pointer; font-size:13px; }
+  .live-chk{ transform:scale(1.1); }
+
   @media (max-width:640px){
     .stat-row{ grid-template-columns:repeat(2,1fr); }
     header.top h1{ font-size:18px; }
@@ -208,56 +292,118 @@
     <button id="refreshBtn" title="Reload latest data">↻ Refresh</button>
   </header>
 
-  <div class="stat-row" id="statRow"></div>
-
-  <div class="toolbar">
-    <div class="brand-pills" id="brandPills"></div>
-    <div class="filter-row">
-      <input type="text" id="searchInput" placeholder="Search product code…" />
-      <select id="subgroupSelect"><option value="">All categories</option></select>
-      <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In stock only</label>
-      <label class="chk"><input type="checkbox" id="showDiscChk" /> Show discontinued</label>
-    </div>
-    <div class="filter-row">
-      <span style="font-size:12px;color:var(--text-secondary);">Price view:</span>
-      <div class="seg" id="priceSeg">
-        <button data-mode="rrp" aria-pressed="true">RRP</button>
-        <button data-mode="d25" aria-pressed="false">25% off</button>
-        <button data-mode="d20" aria-pressed="false">20% off</button>
-        <button data-mode="d15" aria-pressed="false">15% off</button>
-      </div>
-      <div class="gst-toggle">
-        GST:
-        <button data-gst="inc" aria-pressed="true">Inc GST</button>
-        <button data-gst="ex" aria-pressed="false">Ex GST</button>
-      </div>
-    </div>
-    <div class="price-banner" id="priceBanner"></div>
+  <div class="tabs">
+    <button class="tab-btn" data-tab="overview" aria-selected="true">Overview</button>
+    <button class="tab-btn" data-tab="detail" aria-selected="false">Detail</button>
   </div>
 
-  <div class="table-scroll">
-    <table id="productTable">
-      <thead>
-        <tr>
-          <th>Product code</th>
-          <th>Brand</th>
-          <th>Category</th>
-          <th>Price</th>
-          <th>Stock</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="empty-note" id="emptyNote" hidden>No products match these filters.</div>
-  </div>
+  <!-- ============ OVERVIEW TAB ============ -->
+  <section class="tab-panel" id="tab-overview">
+
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="toolbar">
+      <div class="brand-pills" id="brandPills"></div>
+      <div class="filter-row">
+        <input type="text" id="searchInput" placeholder="Search product code…" />
+        <select id="subgroupSelect"><option value="">All categories</option></select>
+        <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In stock only</label>
+        <label class="chk"><input type="checkbox" id="showDiscChk" /> Show discontinued</label>
+      </div>
+      <div class="filter-row">
+        <span style="font-size:12px;color:var(--text-secondary);">Price view:</span>
+        <div class="seg" id="priceSeg">
+          <button data-mode="rrp" aria-pressed="true">RRP</button>
+          <button data-mode="d25" aria-pressed="false">25% off</button>
+          <button data-mode="d20" aria-pressed="false">20% off</button>
+          <button data-mode="d15" aria-pressed="false">15% off</button>
+        </div>
+        <div class="gst-toggle">
+          GST:
+          <button data-gst="inc" aria-pressed="true">Inc GST</button>
+          <button data-gst="ex" aria-pressed="false">Ex GST</button>
+        </div>
+      </div>
+      <div class="price-banner" id="priceBanner"></div>
+    </div>
+
+    <div class="table-scroll">
+      <table id="productTable">
+        <thead>
+          <tr>
+            <th>Product code</th>
+            <th>Brand</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Quote</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty-note" id="emptyNote" hidden>No products match these filters.</div>
+    </div>
+  </section>
+
+  <!-- ============ DETAIL TAB ============ -->
+  <section class="tab-panel" id="tab-detail" hidden>
+
+    <div id="gateBox" class="gate">
+      <div style="font-weight:600; margin-bottom:2px;">Enter passcode to edit</div>
+      <div style="font-size:12px;color:var(--text-secondary);">This just prevents accidental edits by reps browsing the Overview tab.</div>
+      <input type="password" id="gateInput" placeholder="Passcode" />
+      <div class="err" id="gateErr"></div>
+      <button id="gateBtn">Unlock</button>
+    </div>
+
+    <div id="editArea" hidden>
+      <div class="edit-toolbar">
+        <button id="addProductBtn">+ Add product</button>
+        <span class="msg" id="editMsg"></span>
+        <button id="saveAllBtn" disabled>Save changes</button>
+      </div>
+      <div class="table-scroll">
+        <table class="edit-table" id="editTable">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Brand</th>
+              <th>Category</th>
+              <th>RRP</th>
+              <th>RRP exGST</th>
+              <th>25% off</th>
+              <th>20% off</th>
+              <th>15% off</th>
+              <th>QOH</th>
+              <th>Alloc.</th>
+              <th>Avail.</th>
+              <th>Live</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="editTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
   <footer class="legal">Internal use — Digital Door Locks Pty Ltd. Prices exclude freight unless stated.</footer>
+</div>
+
+<!-- Quote bar (Overview tab only) -->
+<div id="quoteBar" hidden>
+  <div id="quoteBarHead">
+    <div class="left">🧾 Quote <span class="count" id="quoteCount">0</span></div>
+    <div class="total" id="quoteTotal">$0.00</div>
+  </div>
+  <div id="quotePanel" hidden></div>
 </div>
 
 <script>
   const SUPA_URL = 'https://tfpgywqmwnjesesfcmcg.supabase.co';
   const SUPA_KEY = 'sb_publishable_j6MIouzm484dXuHqH76JNw_39ol8cBx';
   const SH = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
+  const DETAIL_PASSCODE = 'ddl2026';
 
   const BRAND_COLORS = {
     'Philips Locks': 'var(--brand-1)',
@@ -278,25 +424,45 @@
     priceMode: 'rrp',
     gst: 'inc',
   };
+  let quote = []; // { id, qty }
+  let quoteOpen = false;
 
   function money(v){
     if (v === null || v === undefined || isNaN(v)) return '—';
     return '$' + Number(v).toLocaleString('en-AU', {minimumFractionDigits:2, maximumFractionDigits:2});
   }
-
   function fmtDate(d){
     if (!d) return null;
     return new Date(d).toLocaleString('en-AU', { dateStyle:'medium', timeStyle:'short' });
   }
+  function num(v){
+    if (v === '' || v === null || v === undefined) return null;
+    const n = Number(v);
+    return isNaN(n) ? null : n;
+  }
 
+  /* ---------------- Tabs ---------------- */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.setAttribute('aria-selected', b===btn?'true':'false'));
+      const showDetail = btn.dataset.tab === 'detail';
+      document.getElementById('tab-overview').hidden = showDetail;
+      document.getElementById('tab-detail').hidden = !showDetail;
+      document.getElementById('quoteBar').hidden = showDetail || quote.length===0;
+      if (showDetail) maybeShowEditArea();
+    });
+  });
+
+  /* ---------------- Load / shared data ---------------- */
   async function loadProducts(){
     document.getElementById('syncText').textContent = 'Loading…';
     try{
-      const r = await fetch(`${SUPA_URL}/rest/v1/products?select=*&limit=10000`, { headers: SH });
+      const r = await fetch(`${SUPA_URL}/rest/v1/products?select=*&limit=10000&order=brand,code`, { headers: SH });
       const rows = await r.json();
       allProducts = Array.isArray(rows) ? rows : [];
       populateFilters();
       render();
+      renderEditTable();
       const latest = allProducts.reduce((max,p)=> {
         const t = p.updated_at ? new Date(p.updated_at).getTime() : 0;
         return t > max ? t : max;
@@ -319,16 +485,16 @@
   function populateFilters(){
     const pillsEl = document.getElementById('brandPills');
     const brands = BRAND_ORDER.filter(b => allProducts.some(p=>p.brand===b));
-    // include any brand not in known order too
     allProducts.forEach(p=>{ if(p.brand && !brands.includes(p.brand)) brands.push(p.brand); });
     pillsEl.innerHTML = '';
-    const allPill = makePill('All brands', '', null);
-    pillsEl.appendChild(allPill);
+    pillsEl.appendChild(makePill('All brands', '', null));
     brands.forEach(b => pillsEl.appendChild(makePill(b, b, BRAND_COLORS[b] || 'var(--muted)')));
 
     const sub = document.getElementById('subgroupSelect');
     const subgroups = [...new Set(allProducts.map(p=>p.subgroup).filter(Boolean))].sort();
+    const prevVal = sub.value;
     sub.innerHTML = '<option value="">All categories</option>' + subgroups.map(s=>`<option value="${s}">${s}</option>`).join('');
+    sub.value = prevVal;
   }
 
   function makePill(label, value, color){
@@ -380,6 +546,7 @@
     return qty !== null && qty > 0;
   }
 
+  /* ---------------- Overview render ---------------- */
   function render(){
     document.getElementById('priceBanner').innerHTML = `Showing: <b>${priceLabel()}</b>`;
 
@@ -403,17 +570,22 @@
       tbody.innerHTML = rows.map(p=>{
         const color = BRAND_COLORS[p.brand] || 'var(--muted)';
         const price = getPrice(p);
+        const inQuote = quote.find(q=>q.id===p.id);
+        const addBtn = p.is_live
+          ? `<button class="add-btn" data-added="${!!inQuote}" data-id="${p.id}">${inQuote ? '✓ In quote' : '+ Add'}</button>`
+          : `<span style="color:var(--muted); font-size:12px;">—</span>`;
         return `<tr>
           <td class="code-cell">${p.code}</td>
           <td><span class="brand-badge"><span class="dot" style="background:${color}"></span>${p.brand||'—'}</span></td>
           <td>${p.subgroup||'—'}</td>
           <td><span class="price-main">${money(price)}</span></td>
           <td>${stockBadge(p)}</td>
+          <td>${addBtn}</td>
         </tr>`;
       }).join('');
     }
-
     renderStats(rows);
+    renderQuote();
   }
 
   function renderStats(filteredRows){
@@ -422,7 +594,6 @@
     const hasStockData = allProducts.some(p=> p.qoh !== null && p.qoh !== undefined);
     const inStock = hasStockData ? allProducts.filter(p=>p.is_live && isInStock(p)).length : null;
     const shown = filteredRows.length;
-
     const tiles = [
       { num: total, label: 'Active SKUs' },
       { num: brandsCount, label: 'Brands' },
@@ -453,6 +624,241 @@
     state.gst = btn.dataset.gst;
     document.querySelectorAll('.gst-toggle button').forEach(b=>b.setAttribute('aria-pressed', b===btn ? 'true':'false'));
     render();
+  });
+
+  document.getElementById('tbody').addEventListener('click', e=>{
+    const btn = e.target.closest('.add-btn');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const existing = quote.find(q=>q.id===id);
+    if (existing){
+      quote = quote.filter(q=>q.id!==id);
+    } else {
+      quote.push({ id, qty: 1 });
+    }
+    render();
+  });
+
+  /* ---------------- Quote panel ---------------- */
+  function renderQuote(){
+    const bar = document.getElementById('quoteBar');
+    const panel = document.getElementById('quotePanel');
+    document.getElementById('quoteCount').textContent = quote.reduce((s,q)=>s+q.qty,0);
+
+    let total = 0;
+    const rowsHtml = quote.map(q=>{
+      const p = allProducts.find(pp=>pp.id===q.id);
+      if(!p) return '';
+      const unit = getPrice(p) || 0;
+      total += unit * q.qty;
+      return `<div class="quote-row" data-id="${p.id}">
+        <div class="qcode">${p.code}<small>${p.brand||''}</small></div>
+        <div class="qty-step">
+          <button data-act="dec">−</button>
+          <span class="qty-num">${q.qty}</span>
+          <button data-act="inc">+</button>
+        </div>
+        <div class="qprice">${money(unit*q.qty)}</div>
+        <button class="qremove" data-act="remove" title="Remove">×</button>
+      </div>`;
+    }).join('');
+
+    panel.innerHTML = (quote.length
+      ? rowsHtml + `<div class="quote-actions">
+          <button id="quoteCopyBtn">Copy summary</button>
+          <button id="quoteClearBtn">Clear all</button>
+        </div>`
+      : `<div class="quote-empty">No products added yet — tap “+ Add” on the Overview tab.</div>`);
+
+    document.getElementById('quoteTotal').textContent = money(total);
+    const onOverview = document.getElementById('tab-detail').hidden === true;
+    bar.hidden = quote.length === 0 || !onOverview;
+    if (quote.length === 0) quoteOpen = false;
+    panel.hidden = !quoteOpen;
+  }
+
+  document.getElementById('quoteBarHead').addEventListener('click', ()=>{
+    quoteOpen = !quoteOpen;
+    document.getElementById('quotePanel').hidden = !quoteOpen;
+  });
+
+  document.getElementById('quotePanel').addEventListener('click', e=>{
+    const row = e.target.closest('.quote-row');
+    if (row){
+      const id = row.dataset.id;
+      const act = e.target.dataset.act;
+      const item = quote.find(q=>q.id===id);
+      if (act === 'inc' && item) item.qty++;
+      if (act === 'dec' && item){ item.qty--; if(item.qty<=0) quote = quote.filter(q=>q.id!==id); }
+      if (act === 'remove') quote = quote.filter(q=>q.id!==id);
+      render();
+      return;
+    }
+    if (e.target.id === 'quoteClearBtn'){ quote = []; render(); }
+    if (e.target.id === 'quoteCopyBtn'){
+      const lines = quote.map(q=>{
+        const p = allProducts.find(pp=>pp.id===q.id);
+        if(!p) return '';
+        const unit = getPrice(p) || 0;
+        return `${p.code} x${q.qty} — ${money(unit*q.qty)}`;
+      });
+      const total = quote.reduce((s,q)=>{
+        const p = allProducts.find(pp=>pp.id===q.id);
+        return s + (p ? (getPrice(p)||0)*q.qty : 0);
+      },0);
+      lines.push('', `Total (${priceLabel()}): ${money(total)}`);
+      const text = lines.join('\n');
+      navigator.clipboard?.writeText(text).then(()=>{
+        e.target.textContent = 'Copied!';
+        setTimeout(()=>{ e.target.textContent='Copy summary'; }, 1500);
+      }).catch(()=>{});
+    }
+  });
+
+  /* ---------------- Detail tab: passcode gate ---------------- */
+  function maybeShowEditArea(){
+    const unlocked = sessionStorage.getItem('ddl_detail_unlocked') === '1';
+    document.getElementById('gateBox').hidden = unlocked;
+    document.getElementById('editArea').hidden = !unlocked;
+  }
+  document.getElementById('gateBtn').addEventListener('click', tryUnlock);
+  document.getElementById('gateInput').addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  function tryUnlock(){
+    const val = document.getElementById('gateInput').value;
+    if (val === DETAIL_PASSCODE){
+      sessionStorage.setItem('ddl_detail_unlocked','1');
+      maybeShowEditArea();
+    } else {
+      document.getElementById('gateErr').textContent = 'Incorrect passcode.';
+    }
+  }
+
+  /* ---------------- Detail tab: edit table ---------------- */
+  let editRows = []; // working copy: existing products (by id) + any new blank rows ({_new:true, _tmp:id})
+  let tmpCounter = 0;
+
+  function renderEditTable(){
+    // Preserve any in-progress new/blank rows across a data refresh
+    const pendingNew = editRows.filter(r=>r._new);
+    editRows = allProducts.map(p=>({ ...p, _dirty:false })).concat(pendingNew);
+    drawEditTable();
+  }
+
+  function drawEditTable(){
+    const tbody = document.getElementById('editTbody');
+    tbody.innerHTML = editRows.map(r=>{
+      const key = r._new ? r._tmp : r.id;
+      return `<tr data-key="${key}" class="${r._dirty?'dirty':''}">
+        <td><input type="text" data-f="code" value="${r.code||''}" /></td>
+        <td><input type="text" data-f="brand" value="${r.brand||''}" /></td>
+        <td><input type="text" data-f="subgroup" value="${r.subgroup||''}" /></td>
+        <td><input type="number" step="0.01" data-f="rrp" value="${r.rrp ?? ''}" /></td>
+        <td><input type="number" step="0.01" data-f="rrp_exgst" value="${r.rrp_exgst ?? ''}" /></td>
+        <td><input type="number" step="0.01" data-f="price_25" value="${r.price_25 ?? ''}" /></td>
+        <td><input type="number" step="0.01" data-f="price_20" value="${r.price_20 ?? ''}" /></td>
+        <td><input type="number" step="0.01" data-f="price_15" value="${r.price_15 ?? ''}" /></td>
+        <td><input type="number" step="1" data-f="qoh" value="${r.qoh ?? ''}" /></td>
+        <td><input type="number" step="1" data-f="allocation" value="${r.allocation ?? ''}" /></td>
+        <td><input type="number" step="1" data-f="available_qty" value="${r.available_qty ?? ''}" /></td>
+        <td style="text-align:center;"><input class="live-chk" type="checkbox" data-f="is_live" ${r.is_live!==false?'checked':''} /></td>
+        <td><button class="del-btn" data-key="${key}" title="Delete">🗑</button></td>
+      </tr>`;
+    }).join('');
+    updateSaveBtn();
+  }
+
+  document.getElementById('editTbody').addEventListener('input', e=>{
+    const tr = e.target.closest('tr');
+    if(!tr) return;
+    const key = tr.dataset.key;
+    const row = editRows.find(r => String(r._new ? r._tmp : r.id) === String(key));
+    if(!row) return;
+    const field = e.target.dataset.f;
+    let val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    if (['rrp','rrp_exgst','price_25','price_20','price_15','qoh','allocation','available_qty'].includes(field)){
+      val = num(val);
+    }
+    row[field] = val;
+    row._dirty = true;
+    tr.classList.add('dirty');
+    updateSaveBtn();
+  });
+
+  document.getElementById('editTbody').addEventListener('click', async e=>{
+    const del = e.target.closest('.del-btn');
+    if(!del) return;
+    const key = del.dataset.key;
+    const row = editRows.find(r => String(r._new ? r._tmp : r.id) === String(key));
+    if(!row) return;
+    if (row._new){
+      editRows = editRows.filter(r => r !== row);
+      drawEditTable();
+      return;
+    }
+    if (!confirm(`Delete ${row.code} from the price list? This can't be undone.`)) return;
+    try{
+      const r = await fetch(`${SUPA_URL}/rest/v1/products?id=eq.${row.id}`, { method:'DELETE', headers: SH });
+      if (!r.ok) throw new Error('delete failed');
+      setEditMsg('Deleted ' + row.code);
+      await loadProducts();
+    } catch(err){
+      setEditMsg('Could not delete — check connection.');
+      console.error(err);
+    }
+  });
+
+  document.getElementById('addProductBtn').addEventListener('click', ()=>{
+    tmpCounter++;
+    editRows.push({ _new:true, _tmp:'tmp'+tmpCounter, _dirty:true, code:'', brand:'', subgroup:'', is_live:true });
+    drawEditTable();
+  });
+
+  function updateSaveBtn(){
+    const dirty = editRows.some(r=>r._dirty);
+    document.getElementById('saveAllBtn').disabled = !dirty;
+  }
+  function setEditMsg(msg){
+    document.getElementById('editMsg').textContent = msg;
+    setTimeout(()=>{ if(document.getElementById('editMsg').textContent===msg) document.getElementById('editMsg').textContent=''; }, 4000);
+  }
+
+  document.getElementById('saveAllBtn').addEventListener('click', async ()=>{
+    const dirtyRows = editRows.filter(r=>r._dirty);
+    if (!dirtyRows.length) return;
+    setEditMsg('Saving…');
+    let okCount = 0, errCount = 0;
+    for (const row of dirtyRows){
+      const payload = {
+        code: row.code, brand: row.brand||null, subgroup: row.subgroup||null,
+        rrp: row.rrp, rrp_exgst: row.rrp_exgst,
+        price_25: row.price_25, price_20: row.price_20, price_15: row.price_15,
+        qoh: row.qoh, allocation: row.allocation, available_qty: row.available_qty,
+        is_live: row.is_live !== false,
+        updated_at: new Date().toISOString(),
+      };
+      if (!payload.code){ errCount++; continue; }
+      try{
+        if (row._new){
+          const r = await fetch(`${SUPA_URL}/rest/v1/products`, {
+            method:'POST', headers:{...SH, 'Content-Type':'application/json', Prefer:'return=representation'},
+            body: JSON.stringify(payload)
+          });
+          if(!r.ok) throw new Error(await r.text());
+        } else {
+          const r = await fetch(`${SUPA_URL}/rest/v1/products?id=eq.${row.id}`, {
+            method:'PATCH', headers:{...SH, 'Content-Type':'application/json', Prefer:'return=representation'},
+            body: JSON.stringify(payload)
+          });
+          if(!r.ok) throw new Error(await r.text());
+        }
+        okCount++;
+      } catch(err){
+        console.error('Save failed for', row.code, err);
+        errCount++;
+      }
+    }
+    setEditMsg(errCount ? `Saved ${okCount}, ${errCount} failed — check codes are filled in.` : `Saved ${okCount} row(s).`);
+    await loadProducts();
   });
 
   loadProducts();
