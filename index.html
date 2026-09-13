@@ -779,7 +779,9 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
       const matches = allProducts.filter(pp=>{
         if (pp.id === p.id) return false;
         if (!state.showDisc && !pp.is_live) return false;
-        return pp.code.toLowerCase().includes(q);
+        return pp.code.toLowerCase().includes(q)
+          || (pp.brand && pp.brand.toLowerCase().includes(q))
+          || (pp.subgroup && pp.subgroup.toLowerCase().includes(q));
       }).slice(0, 8);
       jumpResults.innerHTML = matches.length
         ? matches.map(m=>`<div class="card-jump-row" data-id="${m.id}"><span class="cjr-code">${m.code}</span><span class="cjr-meta">${m.brand||'—'} · ${money(getPrice(m))}</span></div>`).join('')
