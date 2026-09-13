@@ -211,8 +211,7 @@ select.wk-sel{
 
 .pc-controls{ display:flex; align-items:center; justify-content:center; gap:18px; margin-top:16px; flex-wrap:wrap; }
 .pc-ctrl-group{ display:flex; align-items:center; gap:8px; }
-.seg-ctrl-sm{ padding:1px; }
-.seg-ctrl-sm .seg-btn{ padding:4px 10px; font-size:11px; }
+.pc-price-sel{ min-width:110px; text-align:center; }
 
 @media (max-width:640px){
   .product-card{ padding:32px 20px; }
@@ -758,12 +757,12 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
         <div class="pc-controls">
           <div class="pc-ctrl-group">
             <span class="wk-label">Price</span>
-            <div class="seg-ctrl seg-ctrl-sm" id="cardPriceSeg">
-              <button class="seg-btn ${state.priceMode==='rrp'?'active':''}" data-mode="rrp">RRP</button>
-              <button class="seg-btn ${state.priceMode==='d25'?'active':''}" data-mode="d25">25% off</button>
-              <button class="seg-btn ${state.priceMode==='d20'?'active':''}" data-mode="d20">20% off</button>
-              <button class="seg-btn ${state.priceMode==='d15'?'active':''}" data-mode="d15">15% off</button>
-            </div>
+            <select id="cardPriceSelect" class="wk-sel pc-price-sel">
+              <option value="rrp" ${state.priceMode==='rrp'?'selected':''}>RRP</option>
+              <option value="d25" ${state.priceMode==='d25'?'selected':''}>25% off</option>
+              <option value="d20" ${state.priceMode==='d20'?'selected':''}>20% off</option>
+              <option value="d15" ${state.priceMode==='d15'?'selected':''}>15% off</option>
+            </select>
           </div>
         </div>
         <div class="pc-stock">${stockBadge(p)}</div>
@@ -784,11 +783,11 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     if (nextP) document.getElementById('cardNextBtn').addEventListener('click', ()=>openProductCard(nextP.id));
 
     // Compact Price control on the card itself — keeps it "live" while the
-    // main filter toolbar is hidden.
-    document.getElementById('cardPriceSeg').addEventListener('click', e=>{
-      const btn = e.target.closest('button[data-mode]');
-      if(!btn) return;
-      state.priceMode = btn.dataset.mode;
+    // main filter toolbar is hidden. A closed dropdown (rather than the full
+    // set of segmented buttons) so a client looking at the screen only sees
+    // the current tier, not the whole discount ladder.
+    document.getElementById('cardPriceSelect').addEventListener('change', e=>{
+      state.priceMode = e.target.value;
       render();
     });
 
