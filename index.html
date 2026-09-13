@@ -295,9 +295,9 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
 
 <div class="toolbar">
   <input type="text" id="searchInput" class="search-input" placeholder="Search product code…" />
-  <select id="subgroupSelect" class="wk-sel"><option value="">All categories</option></select>
-  <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In stock only</label>
-  <label class="chk"><input type="checkbox" id="showDiscChk" /> Show discontinued</label>
+  <select id="subgroupSelect" class="wk-sel"><option value="">All Categories</option></select>
+  <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In Stock Only</label>
+  <label class="chk"><input type="checkbox" id="showDiscChk" /> Show Discontinued</label>
   <div class="toolbar-sep"></div>
   <span class="wk-label">Price</span>
   <div class="seg-ctrl" id="priceSeg">
@@ -499,7 +499,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     const sub = document.getElementById('subgroupSelect');
     const subgroups = [...new Set(allProducts.map(p=>p.subgroup).filter(Boolean))].sort();
     const prevVal = sub.value;
-    sub.innerHTML = '<option value="">All categories</option>' + subgroups.map(s=>`<option value="${s}">${s}</option>`).join('');
+    sub.innerHTML = '<option value="">All Categories</option>' + subgroups.map(s=>`<option value="${s}">${s}</option>`).join('');
     sub.value = prevVal;
   }
 
