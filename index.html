@@ -208,6 +208,11 @@ select.wk-sel{
 .card-jump-row .cjr-meta{ color:var(--text-3); font-size:11px; }
 .card-jump-empty{ padding:10px 12px; color:var(--text-3); font-size:12px; }
 
+.pc-controls{ display:flex; align-items:center; justify-content:center; gap:18px; margin-top:16px; flex-wrap:wrap; }
+.pc-ctrl-group{ display:flex; align-items:center; gap:8px; }
+.seg-ctrl-sm{ padding:1px; }
+.seg-ctrl-sm .seg-btn{ padding:4px 10px; font-size:11px; }
+
 @media (max-width:640px){
   .product-card{ padding:32px 20px; }
   .pc-price{ font-size:44px; }
@@ -341,7 +346,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   <div class="pill-group" id="brandPills"></div>
 </div>
 
-<div class="toolbar">
+<div class="toolbar" id="filterToolbar">
   <input type="text" id="searchInput" class="search-input" placeholder="Search product code…" />
   <select id="subgroupSelect" class="wk-sel"><option value="">All Categories</option></select>
   <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In Stock Only</label>
@@ -606,7 +611,13 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   }
 
   /* ---------------- Overview render ---------------- */
+  function syncPriceGstButtons(){
+    document.querySelectorAll('#priceSeg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===state.priceMode));
+    document.querySelectorAll('#gstSeg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.gst===state.gst));
+  }
+
   function render(){
+    syncPriceGstButtons();
     document.getElementById('priceBanner').innerHTML = `Showing: <b>${priceLabel()}</b>`;
 
     let rows = allProducts.filter(p=>{
@@ -675,14 +686,12 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     const btn = e.target.closest('button[data-mode]');
     if(!btn) return;
     state.priceMode = btn.dataset.mode;
-    document.querySelectorAll('#priceSeg .seg-btn').forEach(b=>b.classList.toggle('active', b===btn));
     render();
   });
   document.getElementById('gstSeg').addEventListener('click', e=>{
     const btn = e.target.closest('button[data-gst]');
     if(!btn) return;
     state.gst = btn.dataset.gst;
-    document.querySelectorAll('#gstSeg .seg-btn').forEach(b=>b.classList.toggle('active', b===btn));
     render();
   });
 
@@ -716,16 +725,22 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   function renderProductCardView(filteredRows){
     const listView = document.getElementById('listView');
     const cardView = document.getElementById('cardView');
+    const filterToolbar = document.getElementById('filterToolbar');
     let p = cardProductId ? allProducts.find(pp => String(pp.id) === String(cardProductId)) : null;
     if (!p){
       cardProductId = null;
       listView.hidden = false;
       cardView.hidden = true;
       cardView.innerHTML = '';
+      filterToolbar.hidden = false;
       return;
     }
     listView.hidden = true;
     cardView.hidden = false;
+    // The search/category/stock/discontinued filters don't apply to a single locked-in
+    // product — hide that whole toolbar while the card is open. Price-tier + GST stay
+    // "live" via compact controls built into the card itself (below).
+    filterToolbar.hidden = true;
 
     const idx = filteredRows.findIndex(r => String(r.id) === String(p.id));
     const prevP = idx > 0 ? filteredRows[idx - 1] : null;
@@ -753,6 +768,24 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
         <div class="pc-code">${p.code}</div>
         <div class="pc-price">${money(price)}</div>
         <div class="pc-price-sub">${priceLabel()}</div>
+        <div class="pc-controls">
+          <div class="pc-ctrl-group">
+            <span class="wk-label">Price</span>
+            <div class="seg-ctrl seg-ctrl-sm" id="cardPriceSeg">
+              <button class="seg-btn ${state.priceMode==='rrp'?'active':''}" data-mode="rrp">RRP</button>
+              <button class="seg-btn ${state.priceMode==='d25'?'active':''}" data-mode="d25">25% off</button>
+              <button class="seg-btn ${state.priceMode==='d20'?'active':''}" data-mode="d20">20% off</button>
+              <button class="seg-btn ${state.priceMode==='d15'?'active':''}" data-mode="d15">15% off</button>
+            </div>
+          </div>
+          <div class="pc-ctrl-group">
+            <span class="wk-label">GST</span>
+            <div class="seg-ctrl seg-ctrl-sm" id="cardGstSeg">
+              <button class="seg-btn ${state.gst==='inc'?'active':''}" data-gst="inc">Inc</button>
+              <button class="seg-btn ${state.gst==='ex'?'active':''}" data-gst="ex">Ex</button>
+            </div>
+          </div>
+        </div>
         <div class="pc-stock">${stockBadge(p)}</div>
         ${p.is_live ? `
         <div class="pc-qty-row">
@@ -769,6 +802,21 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     document.getElementById('cardBackBtn').addEventListener('click', closeProductCard);
     if (prevP) document.getElementById('cardPrevBtn').addEventListener('click', ()=>openProductCard(prevP.id));
     if (nextP) document.getElementById('cardNextBtn').addEventListener('click', ()=>openProductCard(nextP.id));
+
+    // Compact Price/GST controls on the card itself — keep them "live" while the
+    // main filter toolbar is hidden.
+    document.getElementById('cardPriceSeg').addEventListener('click', e=>{
+      const btn = e.target.closest('button[data-mode]');
+      if(!btn) return;
+      state.priceMode = btn.dataset.mode;
+      render();
+    });
+    document.getElementById('cardGstSeg').addEventListener('click', e=>{
+      const btn = e.target.closest('button[data-gst]');
+      if(!btn) return;
+      state.gst = btn.dataset.gst;
+      render();
+    });
 
     // Quick jump: find and open any other product without leaving the card
     const jumpInput = document.getElementById('cardJumpInput');
