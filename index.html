@@ -359,11 +359,6 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     <button class="seg-btn" data-mode="d20">20% off</button>
     <button class="seg-btn" data-mode="d15">15% off</button>
   </div>
-  <span class="wk-label">GST</span>
-  <div class="seg-ctrl" id="gstSeg">
-    <button class="seg-btn active" data-gst="inc">Inc</button>
-    <button class="seg-btn" data-gst="ex">Ex</button>
-  </div>
   <span class="price-banner" id="priceBanner"></span>
 </div>
 
@@ -483,7 +478,6 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     stockOnly: false,
     showDisc: false,
     priceMode: 'rrp',
-    gst: 'inc',
   };
   let quote = []; // { id, qty }
   let quoteOpen = false;
@@ -577,17 +571,16 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   }
 
   function priceLabel(){
-    if (state.priceMode === 'rrp') return state.gst==='inc' ? 'RRP (inc GST)' : 'RRP (ex GST)';
+    if (state.priceMode === 'rrp') return 'RRP (ex GST)';
     const pct = state.priceMode.slice(1);
-    return `${pct}% off — trade price (${state.gst==='inc'?'inc':'ex'} GST)`;
+    return `${pct}% off — trade price (ex GST)`;
   }
 
   function getPrice(p){
     const exMap = { rrp: p.rrp_exgst, d25: p.price_25, d20: p.price_20, d15: p.price_15 };
     const ex = exMap[state.priceMode];
     if (ex === null || ex === undefined) return null;
-    if (state.gst === 'ex') return ex;
-    return ex * 1.1;
+    return ex;
   }
 
   function stockBadge(p){
@@ -611,13 +604,12 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   }
 
   /* ---------------- Overview render ---------------- */
-  function syncPriceGstButtons(){
+  function syncPriceButtons(){
     document.querySelectorAll('#priceSeg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===state.priceMode));
-    document.querySelectorAll('#gstSeg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.gst===state.gst));
   }
 
   function render(){
-    syncPriceGstButtons();
+    syncPriceButtons();
     document.getElementById('priceBanner').innerHTML = `Showing: <b>${priceLabel()}</b>`;
 
     let rows = allProducts.filter(p=>{
@@ -688,12 +680,6 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     state.priceMode = btn.dataset.mode;
     render();
   });
-  document.getElementById('gstSeg').addEventListener('click', e=>{
-    const btn = e.target.closest('button[data-gst]');
-    if(!btn) return;
-    state.gst = btn.dataset.gst;
-    render();
-  });
 
   document.getElementById('tbody').addEventListener('click', e=>{
     const btn = e.target.closest('.add-btn');
@@ -738,8 +724,8 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     listView.hidden = true;
     cardView.hidden = false;
     // The search/category/stock/discontinued filters don't apply to a single locked-in
-    // product — hide that whole toolbar while the card is open. Price-tier + GST stay
-    // "live" via compact controls built into the card itself (below).
+    // product — hide that whole toolbar while the card is open. Price-tier stays
+    // "live" via a compact control built into the card itself (below).
     filterToolbar.hidden = true;
 
     const idx = filteredRows.findIndex(r => String(r.id) === String(p.id));
@@ -778,13 +764,6 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
               <button class="seg-btn ${state.priceMode==='d15'?'active':''}" data-mode="d15">15% off</button>
             </div>
           </div>
-          <div class="pc-ctrl-group">
-            <span class="wk-label">GST</span>
-            <div class="seg-ctrl seg-ctrl-sm" id="cardGstSeg">
-              <button class="seg-btn ${state.gst==='inc'?'active':''}" data-gst="inc">Inc</button>
-              <button class="seg-btn ${state.gst==='ex'?'active':''}" data-gst="ex">Ex</button>
-            </div>
-          </div>
         </div>
         <div class="pc-stock">${stockBadge(p)}</div>
         ${p.is_live ? `
@@ -803,18 +782,12 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     if (prevP) document.getElementById('cardPrevBtn').addEventListener('click', ()=>openProductCard(prevP.id));
     if (nextP) document.getElementById('cardNextBtn').addEventListener('click', ()=>openProductCard(nextP.id));
 
-    // Compact Price/GST controls on the card itself — keep them "live" while the
+    // Compact Price control on the card itself — keeps it "live" while the
     // main filter toolbar is hidden.
     document.getElementById('cardPriceSeg').addEventListener('click', e=>{
       const btn = e.target.closest('button[data-mode]');
       if(!btn) return;
       state.priceMode = btn.dataset.mode;
-      render();
-    });
-    document.getElementById('cardGstSeg').addEventListener('click', e=>{
-      const btn = e.target.closest('button[data-gst]');
-      if(!btn) return;
-      state.gst = btn.dataset.gst;
       render();
     });
 
