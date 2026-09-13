@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DDL Price &amp; Stock</title>
+<style>
+  :root{
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #ffffff;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --muted:          #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --good:           #0ca30c;
+    --warning:        #b5790a;
+    --critical:       #d03b3b;
+    --brand-1: #2a78d6; /* Philips Locks */
+    --brand-2: #eb6834; /* Philips Safes */
+    --brand-3: #1baf7a; /* Samsung Locks */
+    --brand-4: #eda100; /* Zigbang Locks */
+    --brand-5: #e87ba4; /* DDL Locks */
+    --accent:  #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --surface-2:      #202020;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted:          #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --good:           #0ca30c;
+      --warning:        #d99a1e;
+      --critical:       #e66767;
+      --brand-1: #3987e5;
+      --brand-2: #d95926;
+      --brand-3: #199e70;
+      --brand-4: #c98500;
+      --brand-5: #d55181;
+      --accent:  #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #202020;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted:          #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --good:           #0ca30c;
+    --warning:        #d99a1e;
+    --critical:       #e66767;
+    --brand-1: #3987e5;
+    --brand-2: #d95926;
+    --brand-3: #199e70;
+    --brand-4: #c98500;
+    --brand-5: #d55181;
+    --accent:  #3987e5;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding-bottom:48px;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:20px 16px 0; }
+
+  header.top{
+    display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px;
+    margin-bottom:16px;
+  }
+  header.top h1{ font-size:20px; margin:0 0 4px; }
+  header.top p{ margin:0; color:var(--text-secondary); font-size:13px; }
+  .sync-line{ font-size:12px; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--good); display:inline-block; }
+  .sync-dot.stale{ background:var(--warning); }
+  #refreshBtn{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+    padding:6px 12px; border-radius:8px; font-size:13px; cursor:pointer;
+  }
+  #refreshBtn:hover{ border-color:var(--accent); }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:18px; }
+  .stat-tile{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:10px;
+    padding:12px 14px;
+  }
+  .stat-tile .num{ font-size:22px; font-weight:600; font-variant-numeric:proportional-nums; }
+  .stat-tile .label{ font-size:12px; color:var(--text-secondary); margin-top:2px; }
+
+  .toolbar{
+    background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:12px; margin-bottom:14px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .brand-pills{ display:flex; flex-wrap:wrap; gap:6px; }
+  .pill{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+    padding:6px 12px; border-radius:999px; font-size:13px; cursor:pointer;
+    display:flex; align-items:center; gap:6px; line-height:1.2;
+  }
+  .pill .dot{ width:8px; height:8px; border-radius:50%; }
+  .pill[aria-pressed="true"]{ border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); font-weight:600; }
+
+  .filter-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .filter-row input[type="text"], .filter-row select{
+    background:var(--surface-2); color:var(--text-primary); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px; font-size:13px; width:auto;
+  }
+  .filter-row input[type="text"]{ flex:1; min-width:160px; }
+  .chk{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); white-space:nowrap; }
+
+  .seg{ display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .seg button{
+    border:none; background:var(--surface-2); color:var(--text-secondary);
+    padding:7px 12px; font-size:13px; cursor:pointer; border-right:1px solid var(--border);
+  }
+  .seg button:last-child{ border-right:none; }
+  .seg button[aria-pressed="true"]{ background:var(--accent); color:#fff; font-weight:600; }
+  .gst-toggle{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); }
+  .gst-toggle button{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary);
+    padding:6px 10px; border-radius:8px; font-size:12px; cursor:pointer;
+  }
+  .gst-toggle button[aria-pressed="true"]{ border-color:var(--accent); color:var(--text-primary); font-weight:600; }
+
+  .price-banner{
+    font-size:12px; color:var(--text-secondary); padding:2px 2px 0;
+  }
+  .price-banner b{ color:var(--text-primary); }
+
+  .table-scroll{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--surface-1); }
+  table{ border-collapse:separate; border-spacing:0; width:100%; min-width:720px; font-size:13px; }
+  thead th{
+    text-align:left; font-weight:600; color:var(--text-secondary); font-size:11px;
+    text-transform:uppercase; letter-spacing:.03em;
+    padding:10px 12px; border-bottom:1px solid var(--gridline);
+    position:sticky; top:0; background:var(--surface-1); white-space:nowrap;
+  }
+  tbody td{ padding:10px 12px; border-bottom:1px solid var(--gridline); vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover td{ background:var(--surface-2); }
+  td.code-cell{
+    position:sticky; left:0; background:var(--surface-1); font-weight:600;
+    box-shadow: 1px 0 0 var(--gridline);
+  }
+  tbody tr:hover td.code-cell{ background:var(--surface-2); }
+
+  .brand-badge{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); white-space:nowrap; }
+  .brand-badge .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+
+  .price-main{ font-variant-numeric:tabular-nums; font-weight:600; }
+  .price-sub{ font-variant-numeric:tabular-nums; font-size:11px; color:var(--muted); }
+
+  .status{
+    display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:3px 8px; border-radius:999px;
+    white-space:nowrap;
+  }
+  .status .idot{ width:7px; height:7px; border-radius:50%; flex:none; }
+  .status.good{ color:var(--good); background:color-mix(in srgb, var(--good) 14%, transparent); }
+  .status.good .idot{ background:var(--good); }
+  .status.warn{ color:var(--warning); background:color-mix(in srgb, var(--warning) 16%, transparent); }
+  .status.warn .idot{ background:var(--warning); }
+  .status.bad{ color:var(--critical); background:color-mix(in srgb, var(--critical) 14%, transparent); }
+  .status.bad .idot{ background:var(--critical); }
+  .status.muted{ color:var(--muted); background:color-mix(in srgb, var(--muted) 14%, transparent); }
+  .status.muted .idot{ background:var(--muted); }
+  .status.discontinued{ color:var(--text-secondary); background:var(--gridline); }
+
+  .qty-num{ font-variant-numeric:tabular-nums; }
+
+  .empty-note{ text-align:center; padding:40px 12px; color:var(--text-secondary); font-size:14px; }
+
+  footer.legal{ text-align:center; color:var(--muted); font-size:11px; margin-top:16px; }
+
+  @media (max-width:640px){
+    .stat-row{ grid-template-columns:repeat(2,1fr); }
+    header.top h1{ font-size:18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>DDL Product Price &amp; Stock</h1>
+      <p>Live price list and inventory on hand — for reps in the field.</p>
+      <div class="sync-line">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">Loading…</span>
+      </div>
+    </div>
+    <button id="refreshBtn" title="Reload latest data">↻ Refresh</button>
+  </header>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <div class="toolbar">
+    <div class="brand-pills" id="brandPills"></div>
+    <div class="filter-row">
+      <input type="text" id="searchInput" placeholder="Search product code…" />
+      <select id="subgroupSelect"><option value="">All categories</option></select>
+      <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In stock only</label>
+      <label class="chk"><input type="checkbox" id="showDiscChk" /> Show discontinued</label>
+    </div>
+    <div class="filter-row">
+      <span style="font-size:12px;color:var(--text-secondary);">Price view:</span>
+      <div class="seg" id="priceSeg">
+        <button data-mode="rrp" aria-pressed="true">RRP</button>
+        <button data-mode="d25" aria-pressed="false">25% off</button>
+        <button data-mode="d20" aria-pressed="false">20% off</button>
+        <button data-mode="d15" aria-pressed="false">15% off</button>
+      </div>
+      <div class="gst-toggle">
+        GST:
+        <button data-gst="inc" aria-pressed="true">Inc GST</button>
+        <button data-gst="ex" aria-pressed="false">Ex GST</button>
+      </div>
+    </div>
+    <div class="price-banner" id="priceBanner"></div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="productTable">
+      <thead>
+        <tr>
+          <th>Product code</th>
+          <th>Brand</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty-note" id="emptyNote" hidden>No products match these filters.</div>
+  </div>
+
+  <footer class="legal">Internal use — Digital Door Locks Pty Ltd. Prices exclude freight unless stated.</footer>
+</div>
+
+<script>
+  const SUPA_URL = 'https://tfpgywqmwnjesesfcmcg.supabase.co';
+  const SUPA_KEY = 'sb_publishable_j6MIouzm484dXuHqH76JNw_39ol8cBx';
+  const SH = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
+
+  const BRAND_COLORS = {
+    'Philips Locks': 'var(--brand-1)',
+    'Philips Safes': 'var(--brand-2)',
+    'Samsung Locks': 'var(--brand-3)',
+    'Zigbang Locks': 'var(--brand-4)',
+    'DDL Locks':     'var(--brand-5)',
+  };
+  const BRAND_ORDER = ['Philips Locks','Philips Safes','Samsung Locks','Zigbang Locks','DDL Locks'];
+
+  let allProducts = [];
+  let state = {
+    brand: '',
+    subgroup: '',
+    search: '',
+    stockOnly: false,
+    showDisc: false,
+    priceMode: 'rrp',
+    gst: 'inc',
+  };
+
+  function money(v){
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    return '$' + Number(v).toLocaleString('en-AU', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  function fmtDate(d){
+    if (!d) return null;
+    return new Date(d).toLocaleString('en-AU', { dateStyle:'medium', timeStyle:'short' });
+  }
+
+  async function loadProducts(){
+    document.getElementById('syncText').textContent = 'Loading…';
+    try{
+      const r = await fetch(`${SUPA_URL}/rest/v1/products?select=*&limit=10000`, { headers: SH });
+      const rows = await r.json();
+      allProducts = Array.isArray(rows) ? rows : [];
+      populateFilters();
+      render();
+      const latest = allProducts.reduce((max,p)=> {
+        const t = p.updated_at ? new Date(p.updated_at).getTime() : 0;
+        return t > max ? t : max;
+      }, 0);
+      const hasStock = allProducts.some(p => p.qoh !== null && p.qoh !== undefined);
+      const dot = document.getElementById('syncDot');
+      if (hasStock){
+        dot.classList.remove('stale');
+        document.getElementById('syncText').textContent = 'Prices & stock updated ' + (latest? fmtDate(latest) : 'just now');
+      } else {
+        dot.classList.add('stale');
+        document.getElementById('syncText').textContent = 'Prices updated ' + (latest? fmtDate(latest) : 'just now') + ' — live stock feed not connected yet';
+      }
+    } catch(e){
+      document.getElementById('syncText').textContent = 'Could not load data — check connection and Refresh.';
+      console.error(e);
+    }
+  }
+
+  function populateFilters(){
+    const pillsEl = document.getElementById('brandPills');
+    const brands = BRAND_ORDER.filter(b => allProducts.some(p=>p.brand===b));
+    // include any brand not in known order too
+    allProducts.forEach(p=>{ if(p.brand && !brands.includes(p.brand)) brands.push(p.brand); });
+    pillsEl.innerHTML = '';
+    const allPill = makePill('All brands', '', null);
+    pillsEl.appendChild(allPill);
+    brands.forEach(b => pillsEl.appendChild(makePill(b, b, BRAND_COLORS[b] || 'var(--muted)')));
+
+    const sub = document.getElementById('subgroupSelect');
+    const subgroups = [...new Set(allProducts.map(p=>p.subgroup).filter(Boolean))].sort();
+    sub.innerHTML = '<option value="">All categories</option>' + subgroups.map(s=>`<option value="${s}">${s}</option>`).join('');
+  }
+
+  function makePill(label, value, color){
+    const b = document.createElement('button');
+    b.className = 'pill';
+    b.setAttribute('aria-pressed', state.brand === value ? 'true':'false');
+    b.innerHTML = (color ? `<span class="dot" style="background:${color}"></span>` : '') + label;
+    b.addEventListener('click', ()=>{ state.brand = value; syncPillState(); render(); });
+    b.dataset.value = value;
+    return b;
+  }
+  function syncPillState(){
+    document.querySelectorAll('.pill').forEach(p=>{
+      p.setAttribute('aria-pressed', p.dataset.value === state.brand ? 'true':'false');
+    });
+  }
+
+  function priceLabel(){
+    if (state.priceMode === 'rrp') return state.gst==='inc' ? 'RRP (inc GST)' : 'RRP (ex GST)';
+    const pct = state.priceMode.slice(1);
+    return `${pct}% off — trade price (${state.gst==='inc'?'inc':'ex'} GST)`;
+  }
+
+  function getPrice(p){
+    const exMap = { rrp: p.rrp_exgst, d25: p.price_25, d20: p.price_20, d15: p.price_15 };
+    const ex = exMap[state.priceMode];
+    if (ex === null || ex === undefined) return null;
+    if (state.gst === 'ex') return ex;
+    return ex * 1.1;
+  }
+
+  function stockBadge(p){
+    if (!p.is_live){
+      return `<span class="status discontinued"><span class="idot"></span>Not available</span>`;
+    }
+    const qty = (p.available_qty !== null && p.available_qty !== undefined) ? p.available_qty
+              : (p.qoh !== null && p.qoh !== undefined) ? p.qoh : null;
+    if (qty === null){
+      return `<span class="status muted"><span class="idot"></span>Check with office</span>`;
+    }
+    if (qty <= 0) return `<span class="status bad"><span class="idot"></span>Out of stock</span>`;
+    if (qty <= 10) return `<span class="status warn"><span class="idot"></span>Low stock · ${qty}</span>`;
+    return `<span class="status good"><span class="idot"></span>In stock · ${qty}</span>`;
+  }
+
+  function isInStock(p){
+    const qty = (p.available_qty !== null && p.available_qty !== undefined) ? p.available_qty
+              : (p.qoh !== null && p.qoh !== undefined) ? p.qoh : null;
+    return qty !== null && qty > 0;
+  }
+
+  function render(){
+    document.getElementById('priceBanner').innerHTML = `Showing: <b>${priceLabel()}</b>`;
+
+    let rows = allProducts.filter(p=>{
+      if (!state.showDisc && !p.is_live) return false;
+      if (state.brand && p.brand !== state.brand) return false;
+      if (state.subgroup && p.subgroup !== state.subgroup) return false;
+      if (state.search && !p.code.toLowerCase().includes(state.search.toLowerCase())) return false;
+      if (state.stockOnly && !isInStock(p)) return false;
+      return true;
+    });
+    rows.sort((a,b)=> (a.brand||'').localeCompare(b.brand||'') || a.code.localeCompare(b.code));
+
+    const tbody = document.getElementById('tbody');
+    const emptyNote = document.getElementById('emptyNote');
+    if (rows.length === 0){
+      tbody.innerHTML = '';
+      emptyNote.hidden = false;
+    } else {
+      emptyNote.hidden = true;
+      tbody.innerHTML = rows.map(p=>{
+        const color = BRAND_COLORS[p.brand] || 'var(--muted)';
+        const price = getPrice(p);
+        return `<tr>
+          <td class="code-cell">${p.code}</td>
+          <td><span class="brand-badge"><span class="dot" style="background:${color}"></span>${p.brand||'—'}</span></td>
+          <td>${p.subgroup||'—'}</td>
+          <td><span class="price-main">${money(price)}</span></td>
+          <td>${stockBadge(p)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    renderStats(rows);
+  }
+
+  function renderStats(filteredRows){
+    const total = allProducts.filter(p=>p.is_live).length;
+    const brandsCount = new Set(allProducts.filter(p=>p.is_live).map(p=>p.brand)).size;
+    const hasStockData = allProducts.some(p=> p.qoh !== null && p.qoh !== undefined);
+    const inStock = hasStockData ? allProducts.filter(p=>p.is_live && isInStock(p)).length : null;
+    const shown = filteredRows.length;
+
+    const tiles = [
+      { num: total, label: 'Active SKUs' },
+      { num: brandsCount, label: 'Brands' },
+      { num: hasStockData ? inStock : '—', label: 'In stock' },
+      { num: shown, label: 'Matching filters' },
+    ];
+    document.getElementById('statRow').innerHTML = tiles.map(t=>`
+      <div class="stat-tile"><div class="num">${t.num}</div><div class="label">${t.label}</div></div>
+    `).join('');
+  }
+
+  document.getElementById('searchInput').addEventListener('input', e=>{ state.search = e.target.value; render(); });
+  document.getElementById('subgroupSelect').addEventListener('change', e=>{ state.subgroup = e.target.value; render(); });
+  document.getElementById('stockOnlyChk').addEventListener('change', e=>{ state.stockOnly = e.target.checked; render(); });
+  document.getElementById('showDiscChk').addEventListener('change', e=>{ state.showDisc = e.target.checked; render(); });
+  document.getElementById('refreshBtn').addEventListener('click', loadProducts);
+
+  document.getElementById('priceSeg').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-mode]');
+    if(!btn) return;
+    state.priceMode = btn.dataset.mode;
+    document.querySelectorAll('#priceSeg button').forEach(b=>b.setAttribute('aria-pressed', b===btn ? 'true':'false'));
+    render();
+  });
+  document.querySelector('.gst-toggle').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-gst]');
+    if(!btn) return;
+    state.gst = btn.dataset.gst;
+    document.querySelectorAll('.gst-toggle button').forEach(b=>b.setAttribute('aria-pressed', b===btn ? 'true':'false'));
+    render();
+  });
+
+  loadProducts();
+  // Quietly refresh every 5 minutes so a dashboard left open during a meeting stays current
+  setInterval(loadProducts, 5 * 60 * 1000);
+</script>
+</body>
+</html>
