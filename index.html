@@ -164,7 +164,40 @@ select.wk-sel{
 .ptable td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; color:var(--text); }
 .ptable tr:last-child td { border-bottom: none; }
 .ptable tr:hover td { background: rgba(255,255,255,0.03); }
+.ptable tbody tr[data-id]{ cursor:pointer; }
 .pcode { font-weight: 600; color: var(--text); font-size: 12px; }
+
+/* ── POS-STYLE PRODUCT CARD (Overview — tap a row) ── */
+.card-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap; }
+.back-btn{ border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; }
+.back-btn:hover{ border-color:var(--blue); }
+.card-nav-arrows{ display:flex; gap:8px; }
+.nav-arrow{ border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; }
+.nav-arrow:hover:not(:disabled){ border-color:var(--blue); }
+.nav-arrow:disabled{ opacity:.35; cursor:default; }
+
+.product-card{
+  background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-xl);
+  padding:48px 40px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.pc-brand{ display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-2); }
+.pc-brand .dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.pc-code{ font-size:32px; font-weight:700; letter-spacing:-0.5px; color:var(--text); margin-top:6px; }
+.pc-price{ font-size:64px; font-weight:700; letter-spacing:-2px; color:var(--text); font-variant-numeric:tabular-nums; margin-top:14px; }
+.pc-price-sub{ font-size:13px; color:var(--text-3); }
+.pc-stock{ margin-top:10px; }
+.pc-stock .status{ font-size:14px; padding:6px 14px; }
+.pc-qty-row{ display:flex; align-items:center; gap:16px; margin-top:24px; }
+.qty-step.big button{ width:40px; height:40px; font-size:20px; border-radius:10px; }
+.qty-step.big .qty-num{ font-size:20px; font-weight:600; min-width:28px; text-align:center; display:inline-block; }
+.pc-add-btn{ background:var(--blue); color:#fff; border:none; padding:12px 24px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
+.pc-add-btn:hover{ background:var(--blue-light); }
+.pc-unavailable{ color:var(--text-3); font-size:14px; margin-top:16px; }
+@media (max-width:640px){
+  .product-card{ padding:32px 20px; }
+  .pc-price{ font-size:44px; }
+  .pc-code{ font-size:24px; }
+}
 
 .brand-badge{ display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-2); white-space:nowrap; }
 .brand-badge .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
@@ -319,29 +352,34 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   <!-- ============ OVERVIEW TAB ============ -->
   <section class="tab-panel" id="tab-overview">
 
-    <div class="kpi-strip" id="statRow"></div>
+    <div id="listView">
+      <div class="kpi-strip" id="statRow"></div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">Product Price List</span></div>
-      <div class="card-body">
-        <div class="tbl-scroll">
-          <table class="ptable" id="productTable">
-            <thead>
-              <tr>
-                <th>Product code</th>
-                <th>Brand</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th style="text-align:right">Quote</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Product Price List</span></div>
+        <div class="card-body">
+          <div class="tbl-scroll">
+            <table class="ptable" id="productTable">
+              <thead>
+                <tr>
+                  <th>Product code</th>
+                  <th>Brand</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th style="text-align:right">Quote</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-note" id="emptyNote" hidden>No products match these filters.</div>
         </div>
-        <div class="empty-note" id="emptyNote" hidden>No products match these filters.</div>
       </div>
     </div>
+
+    <!-- POS-style single product view (opened by tapping a row) -->
+    <div id="cardView" hidden></div>
   </section>
 
   <!-- ============ DETAIL TAB ============ -->
@@ -429,6 +467,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   };
   let quote = []; // { id, qty }
   let quoteOpen = false;
+  let cardProductId = null; // set when a rep taps a row to open the POS-style single product view
 
   function money(v){
     if (v === null || v === undefined || isNaN(v)) return '—';
@@ -579,7 +618,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
         const addBtn = p.is_live
           ? `<button class="add-btn" data-added="${!!inQuote}" data-id="${p.id}">${inQuote ? '✓ In quote' : '+ Add'}</button>`
           : `<span style="color:var(--text-3); font-size:12px;">—</span>`;
-        return `<tr>
+        return `<tr data-id="${p.id}">
           <td class="pcode">${p.code}</td>
           <td><span class="brand-badge"><span class="dot" style="background:${color}"></span>${p.brand||'—'}</span></td>
           <td>${p.subgroup||'—'}</td>
@@ -591,6 +630,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     }
     renderStats(rows);
     renderQuote();
+    renderProductCardView(rows);
   }
 
   function renderStats(filteredRows){
@@ -633,16 +673,101 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
 
   document.getElementById('tbody').addEventListener('click', e=>{
     const btn = e.target.closest('.add-btn');
-    if(!btn) return;
-    const id = btn.dataset.id;
-    const existing = quote.find(q=>q.id===id);
-    if (existing){
-      quote = quote.filter(q=>q.id!==id);
-    } else {
-      quote.push({ id, qty: 1 });
+    if (btn){
+      const id = btn.dataset.id;
+      const existing = quote.find(q=>q.id===id);
+      if (existing){
+        quote = quote.filter(q=>q.id!==id);
+      } else {
+        quote.push({ id, qty: 1 });
+      }
+      render();
+      return;
     }
-    render();
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) openProductCard(tr.dataset.id);
   });
+
+  /* ---------------- POS-style single product view ---------------- */
+  function openProductCard(id){
+    cardProductId = id;
+    render();
+  }
+  function closeProductCard(){
+    cardProductId = null;
+    render();
+  }
+
+  function renderProductCardView(filteredRows){
+    const listView = document.getElementById('listView');
+    const cardView = document.getElementById('cardView');
+    let p = cardProductId ? allProducts.find(pp => String(pp.id) === String(cardProductId)) : null;
+    if (!p){
+      cardProductId = null;
+      listView.hidden = false;
+      cardView.hidden = true;
+      cardView.innerHTML = '';
+      return;
+    }
+    listView.hidden = true;
+    cardView.hidden = false;
+
+    const idx = filteredRows.findIndex(r => String(r.id) === String(p.id));
+    const prevP = idx > 0 ? filteredRows[idx - 1] : null;
+    const nextP = (idx >= 0 && idx < filteredRows.length - 1) ? filteredRows[idx + 1] : null;
+
+    const color = BRAND_COLORS[p.brand] || 'var(--text-3)';
+    const price = getPrice(p);
+    const item = quote.find(q => q.id === p.id);
+    const qty = item ? item.qty : 0;
+
+    cardView.innerHTML = `
+      <div class="card-nav">
+        <button class="back-btn" id="cardBackBtn">← Back to list</button>
+        <div class="card-nav-arrows">
+          <button class="nav-arrow" id="cardPrevBtn" ${prevP ? '' : 'disabled'}>‹ Prev</button>
+          <button class="nav-arrow" id="cardNextBtn" ${nextP ? '' : 'disabled'}>Next ›</button>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="pc-brand"><span class="dot" style="background:${color}"></span>${p.brand||'—'} · ${p.subgroup||'—'}</div>
+        <div class="pc-code">${p.code}</div>
+        <div class="pc-price">${money(price)}</div>
+        <div class="pc-price-sub">${priceLabel()}</div>
+        <div class="pc-stock">${stockBadge(p)}</div>
+        ${p.is_live ? `
+        <div class="pc-qty-row">
+          <div class="qty-step big">
+            <button data-act="dec" ${qty<=0?'disabled':''}>−</button>
+            <span class="qty-num">${qty}</span>
+            <button data-act="inc">+</button>
+          </div>
+          <button class="pc-add-btn" data-act="inc">${qty>0 ? '+ Add another' : '+ Add to quote'}</button>
+        </div>` : `<div class="pc-unavailable">Not available</div>`}
+      </div>
+    `;
+
+    document.getElementById('cardBackBtn').addEventListener('click', closeProductCard);
+    if (prevP) document.getElementById('cardPrevBtn').addEventListener('click', ()=>openProductCard(prevP.id));
+    if (nextP) document.getElementById('cardNextBtn').addEventListener('click', ()=>openProductCard(nextP.id));
+
+    const qtyRow = cardView.querySelector('.pc-qty-row');
+    if (qtyRow){
+      qtyRow.addEventListener('click', e=>{
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const act = btn.dataset.act;
+        let it = quote.find(q => q.id === p.id);
+        if (act === 'inc'){
+          if (it) it.qty++; else quote.push({ id: p.id, qty: 1 });
+        } else if (act === 'dec' && it){
+          it.qty--;
+          if (it.qty <= 0) quote = quote.filter(q => q.id !== p.id);
+        }
+        render();
+      });
+    }
+  }
 
   /* ---------------- Quote panel ---------------- */
   function renderQuote(){
