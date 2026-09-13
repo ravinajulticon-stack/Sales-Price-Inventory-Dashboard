@@ -109,7 +109,8 @@ body {
 .pill {
   padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-2);
   font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.15s; white-space: nowrap;
-  display: flex; align-items: center; gap: 6px; line-height: 1.2;
+  display: flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.2;
+  min-width: 120px; text-align: center;
 }
 .pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
 .pill:hover { border-color: var(--blue); color: var(--text); }
@@ -492,7 +493,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     const brands = BRAND_ORDER.filter(b => allProducts.some(p=>p.brand===b));
     allProducts.forEach(p=>{ if(p.brand && !brands.includes(p.brand)) brands.push(p.brand); });
     pillsEl.innerHTML = '';
-    pillsEl.appendChild(makePill('All brands', '', null));
+    pillsEl.appendChild(makePill('All Brands', '', null));
     brands.forEach(b => pillsEl.appendChild(makePill(b, b, BRAND_COLORS[b] || 'var(--text-3)')));
 
     const sub = document.getElementById('subgroupSelect');
