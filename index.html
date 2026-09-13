@@ -193,6 +193,21 @@ select.wk-sel{
 .pc-add-btn{ background:var(--blue); color:#fff; border:none; padding:12px 24px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
 .pc-add-btn:hover{ background:var(--blue-light); }
 .pc-unavailable{ color:var(--text-3); font-size:14px; margin-top:16px; }
+
+.card-jump{ position:relative; max-width:420px; margin:0 auto 18px; }
+.card-jump .search-input{ width:100%; }
+.card-jump-results{
+  position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+  background:var(--surface-2); border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+  max-height:260px; overflow-y:auto; box-shadow:var(--shadow);
+}
+.card-jump-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); }
+.card-jump-row:last-child{ border-bottom:none; }
+.card-jump-row:hover{ background:var(--surface-3); }
+.card-jump-row .cjr-code{ font-weight:600; color:var(--text); }
+.card-jump-row .cjr-meta{ color:var(--text-3); font-size:11px; }
+.card-jump-empty{ padding:10px 12px; color:var(--text-3); font-size:12px; }
+
 @media (max-width:640px){
   .product-card{ padding:32px 20px; }
   .pc-price{ font-size:44px; }
@@ -729,6 +744,10 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
           <button class="nav-arrow" id="cardNextBtn" ${nextP ? '' : 'disabled'}>Next ›</button>
         </div>
       </div>
+      <div class="card-jump">
+        <input type="text" id="cardJumpInput" class="search-input" placeholder="Jump to another product code…" autocomplete="off" />
+        <div class="card-jump-results" id="cardJumpResults" hidden></div>
+      </div>
       <div class="product-card">
         <div class="pc-brand"><span class="dot" style="background:${color}"></span>${p.brand||'—'} · ${p.subgroup||'—'}</div>
         <div class="pc-code">${p.code}</div>
@@ -750,6 +769,41 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     document.getElementById('cardBackBtn').addEventListener('click', closeProductCard);
     if (prevP) document.getElementById('cardPrevBtn').addEventListener('click', ()=>openProductCard(prevP.id));
     if (nextP) document.getElementById('cardNextBtn').addEventListener('click', ()=>openProductCard(nextP.id));
+
+    // Quick jump: find and open any other product without leaving the card
+    const jumpInput = document.getElementById('cardJumpInput');
+    const jumpResults = document.getElementById('cardJumpResults');
+    function renderJumpMatches(){
+      const q = jumpInput.value.trim().toLowerCase();
+      if (!q){ jumpResults.hidden = true; jumpResults.innerHTML = ''; return; }
+      const matches = allProducts.filter(pp=>{
+        if (pp.id === p.id) return false;
+        if (!state.showDisc && !pp.is_live) return false;
+        return pp.code.toLowerCase().includes(q);
+      }).slice(0, 8);
+      jumpResults.innerHTML = matches.length
+        ? matches.map(m=>`<div class="card-jump-row" data-id="${m.id}"><span class="cjr-code">${m.code}</span><span class="cjr-meta">${m.brand||'—'} · ${money(getPrice(m))}</span></div>`).join('')
+        : `<div class="card-jump-empty">No matches</div>`;
+      jumpResults.hidden = false;
+    }
+    jumpInput.addEventListener('input', renderJumpMatches);
+    jumpInput.addEventListener('focus', ()=>{ if (jumpInput.value.trim()) renderJumpMatches(); });
+    jumpInput.addEventListener('blur', ()=>{ setTimeout(()=>{ jumpResults.hidden = true; }, 150); });
+    jumpInput.addEventListener('keydown', e=>{
+      if (e.key === 'Enter'){
+        const first = jumpResults.querySelector('.card-jump-row[data-id]');
+        if (first) openProductCard(first.dataset.id);
+      } else if (e.key === 'Escape'){
+        jumpInput.value = '';
+        jumpResults.hidden = true;
+        jumpResults.innerHTML = '';
+      }
+    });
+    jumpResults.addEventListener('mousedown', e=>{
+      // mousedown (not click) so this fires before the input's blur hides the results
+      const row = e.target.closest('.card-jump-row[data-id]');
+      if (row) openProductCard(row.dataset.id);
+    });
 
     const qtyRow = cardView.querySelector('.pc-qty-row');
     if (qtyRow){
