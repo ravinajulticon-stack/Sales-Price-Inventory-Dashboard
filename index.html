@@ -305,23 +305,29 @@ select.wk-sel{
 #addProductBtn{ border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; }
 #addProductBtn:hover{ border-color:var(--blue); }
 
-.so-table{ width:100%; min-width:1350px; border-collapse:collapse; font-size:12px; }
+.so-table{ width:100%; min-width:900px; border-collapse:collapse; font-size:12px; }
 .so-table thead th{
   background:rgba(28,28,30,0.8); color:var(--text-3); font-size:10px; font-weight:600; text-transform:uppercase;
   letter-spacing:0.4px; padding:8px 10px; text-align:left; border-bottom:1px solid var(--border);
   position:sticky; top:0; z-index:2;
 }
-.so-table thead th.col-narrow{ text-align:center; width:60px; }
-/* Code/Brand/Category get room to show their full text instead of clipping inside
-   the input — the table scrolls horizontally (.tbl-scroll) rather than cramming. */
-.so-table th:nth-child(1), .so-table td:nth-child(1){ min-width:200px; }
-.so-table th:nth-child(2), .so-table td:nth-child(2){ min-width:140px; }
-.so-table th:nth-child(3), .so-table td:nth-child(3){ min-width:110px; }
+.so-table thead th.col-narrow{ text-align:center; width:44px; }
+/* Code/Brand/Category get enough room to show their full text without clipping;
+   the numeric columns (which never need much space) are trimmed down to make that
+   room, so the whole table fits without needing to scroll sideways. */
+.so-table th:nth-child(1), .so-table td:nth-child(1){ min-width:175px; }
+.so-table th:nth-child(2), .so-table td:nth-child(2){ min-width:115px; }
+.so-table th:nth-child(3), .so-table td:nth-child(3){ min-width:85px; }
+.so-table th:nth-child(4), .so-table td:nth-child(4){ min-width:55px; }
+.so-table th:nth-child(5), .so-table td:nth-child(5){ min-width:62px; }
+.so-table th:nth-child(6), .so-table td:nth-child(6){ min-width:58px; }
+.so-table th:nth-child(7), .so-table td:nth-child(7){ min-width:58px; }
+.so-table th:nth-child(8), .so-table td:nth-child(8){ min-width:55px; }
 .so-table tbody td{ padding:6px 8px; border-bottom:1px solid var(--border); color:var(--text); }
 .so-table tbody td.col-narrow{ text-align:center; }
 .so-table tbody tr:hover td{ background:rgba(255,255,255,0.03); }
 table.edit-table input[type="text"], table.edit-table input[type="number"]{
-  width:100%; min-width:64px; background:var(--surface-2); color:var(--text);
+  width:100%; min-width:36px; background:var(--surface-2); color:var(--text);
   border:1px solid transparent; border-radius:6px; padding:5px 7px; font-size:12px; font-family:inherit;
 }
 table.edit-table input:focus{ border-color:var(--blue); outline:none; box-shadow:0 0 0 1.5px rgba(10,132,255,.35); }
