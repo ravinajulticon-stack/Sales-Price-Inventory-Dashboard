@@ -177,10 +177,24 @@ select.wk-sel{
 .nav-arrow:hover:not(:disabled){ border-color:var(--blue); }
 .nav-arrow:disabled{ opacity:.35; cursor:default; }
 
+.product-cards-row{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+.product-cards-row .product-card{ flex:1 1 300px; max-width:360px; }
+.product-cards-row.compact .product-card{ padding:32px 24px; }
+.product-cards-row.compact .pc-code{ font-size:22px; }
+.product-cards-row.compact .pc-price{ font-size:38px; }
+.product-cards-row.compact .qty-step.big button{ width:34px; height:34px; font-size:17px; }
+
 .product-card{
   background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-xl);
   padding:48px 40px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px;
+  position:relative;
 }
+.pc-remove{
+  position:absolute; top:10px; right:10px; width:24px; height:24px; border-radius:50%;
+  border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-2);
+  font-size:15px; line-height:1; cursor:pointer; font-family:inherit;
+}
+.pc-remove:hover{ border-color:var(--red); color:var(--red); }
 .pc-brand{ display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-2); }
 .pc-brand .dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .pc-code{ font-size:32px; font-weight:700; letter-spacing:-0.5px; color:var(--text); margin-top:6px; }
@@ -482,7 +496,8 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   };
   let quote = []; // { id, qty }
   let quoteOpen = false;
-  let cardProductId = null; // set when a rep taps a row to open the POS-style single product view
+  const MAX_COMPARE = 4;
+  let cardItems = []; // [{ id, priceMode }] — products currently shown in the POS-style card/compare view, each with its own price tier
 
   function money(v){
     if (v === null || v === undefined || isNaN(v)) return '—';
@@ -571,15 +586,17 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     });
   }
 
-  function priceLabel(){
-    if (state.priceMode === 'rrp') return 'RRP (ex GST)';
-    const pct = state.priceMode.slice(1);
+  function priceLabel(mode){
+    const m = mode || state.priceMode;
+    if (m === 'rrp') return 'RRP (ex GST)';
+    const pct = m.slice(1);
     return `${pct}% off — trade price (ex GST)`;
   }
 
-  function getPrice(p){
+  function getPrice(p, mode){
+    const m = mode || state.priceMode;
     const exMap = { rrp: p.rrp_exgst, d25: p.price_25, d20: p.price_20, d15: p.price_15 };
-    const ex = exMap[state.priceMode];
+    const ex = exMap[m];
     if (ex === null || ex === undefined) return null;
     return ex;
   }
@@ -699,13 +716,24 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     if (tr) openProductCard(tr.dataset.id);
   });
 
-  /* ---------------- POS-style single product view ---------------- */
+  /* ---------------- POS-style single product / compare view ---------------- */
   function openProductCard(id){
-    cardProductId = id;
+    // Tapping a fresh product from the list always starts a clean single-product view.
+    cardItems = [{ id, priceMode: 'rrp' }];
     render();
   }
   function closeProductCard(){
-    cardProductId = null;
+    cardItems = [];
+    render();
+  }
+  function addToCompare(id){
+    if (cardItems.some(ci => String(ci.id) === String(id))) return; // already showing
+    if (cardItems.length >= MAX_COMPARE) return;
+    cardItems.push({ id, priceMode: 'rrp' });
+    render();
+  }
+  function removeFromCompare(id){
+    cardItems = cardItems.filter(ci => String(ci.id) !== String(id));
     render();
   }
 
@@ -713,9 +741,11 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     const listView = document.getElementById('listView');
     const cardView = document.getElementById('cardView');
     const filterToolbar = document.getElementById('filterToolbar');
-    let p = cardProductId ? allProducts.find(pp => String(pp.id) === String(cardProductId)) : null;
-    if (!p){
-      cardProductId = null;
+
+    // Drop any pinned product that no longer exists (e.g. deleted in Detail).
+    cardItems = cardItems.filter(ci => allProducts.some(pp => String(pp.id) === String(ci.id)));
+
+    if (cardItems.length === 0){
       listView.hidden = false;
       cardView.hidden = true;
       cardView.innerHTML = '';
@@ -724,58 +754,73 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     }
     listView.hidden = true;
     cardView.hidden = false;
-    // The search/category/stock/discontinued filters don't apply to a single locked-in
-    // product — hide that whole toolbar while the card is open. Price-tier stays
-    // "live" via a compact control built into the card itself (below).
+    // The search/category/stock/discontinued filters don't apply to a locked-in
+    // product (or set of products), so hide that whole toolbar while the card/compare
+    // view is open. Each card carries its own live Price-tier control instead.
     filterToolbar.hidden = true;
 
-    const idx = filteredRows.findIndex(r => String(r.id) === String(p.id));
-    const prevP = idx > 0 ? filteredRows[idx - 1] : null;
-    const nextP = (idx >= 0 && idx < filteredRows.length - 1) ? filteredRows[idx + 1] : null;
+    const comparing = cardItems.length > 1;
+    const firstId = cardItems[0].id;
+    const idx = filteredRows.findIndex(r => String(r.id) === String(firstId));
+    // Prev/Next only make sense browsing one product at a time.
+    const prevP = (!comparing && idx > 0) ? filteredRows[idx - 1] : null;
+    const nextP = (!comparing && idx >= 0 && idx < filteredRows.length - 1) ? filteredRows[idx + 1] : null;
 
-    const color = BRAND_COLORS[p.brand] || 'var(--text-3)';
-    const price = getPrice(p);
-    const item = quote.find(q => q.id === p.id);
-    const qty = item ? item.qty : 0;
+    const cardsHtml = cardItems.map(ci=>{
+      const p = allProducts.find(pp => String(pp.id) === String(ci.id));
+      if (!p) return '';
+      const color = BRAND_COLORS[p.brand] || 'var(--text-3)';
+      const price = getPrice(p, ci.priceMode);
+      const item = quote.find(q => q.id === p.id);
+      const qty = item ? item.qty : 0;
+      return `
+        <div class="product-card" data-id="${p.id}">
+          ${comparing ? `<button class="pc-remove" data-id="${p.id}" title="Remove from comparison">×</button>` : ''}
+          <div class="pc-brand"><span class="dot" style="background:${color}"></span>${p.brand||'—'} · ${p.subgroup||'—'}</div>
+          <div class="pc-code">${p.code}</div>
+          <div class="pc-price">${money(price)}</div>
+          <div class="pc-price-sub">${priceLabel(ci.priceMode)}</div>
+          <div class="pc-controls">
+            <div class="pc-ctrl-group">
+              <span class="wk-label">Price</span>
+              <select class="wk-sel pc-price-sel" data-id="${p.id}">
+                <option value="rrp" ${ci.priceMode==='rrp'?'selected':''}>RRP</option>
+                <option value="d25" ${ci.priceMode==='d25'?'selected':''}>25% off</option>
+                <option value="d20" ${ci.priceMode==='d20'?'selected':''}>20% off</option>
+                <option value="d15" ${ci.priceMode==='d15'?'selected':''}>15% off</option>
+              </select>
+            </div>
+          </div>
+          <div class="pc-stock">${stockBadge(p)}</div>
+          ${p.is_live ? `
+          <div class="pc-qty-row" data-id="${p.id}">
+            <div class="qty-step big">
+              <button data-act="dec" ${qty<=0?'disabled':''}>−</button>
+              <span class="qty-num">${qty}</span>
+              <button data-act="inc">+</button>
+            </div>
+            ${qty === 0 ? `<button class="pc-add-btn" data-act="inc">+ Add to quote</button>` : `<span class="pc-in-quote">✓ In quote</span>`}
+          </div>` : `<div class="pc-unavailable">Not available</div>`}
+        </div>
+      `;
+    }).join('');
 
+    const atMax = cardItems.length >= MAX_COMPARE;
     cardView.innerHTML = `
       <div class="card-nav">
         <button class="back-btn" id="cardBackBtn">← Back to list</button>
+        ${!comparing ? `
         <div class="card-nav-arrows">
           <button class="nav-arrow" id="cardPrevBtn" ${prevP ? '' : 'disabled'}>‹ Prev</button>
           <button class="nav-arrow" id="cardNextBtn" ${nextP ? '' : 'disabled'}>Next ›</button>
-        </div>
+        </div>` : ''}
       </div>
       <div class="card-jump">
-        <input type="text" id="cardJumpInput" class="search-input" placeholder="Jump to another product code…" autocomplete="off" />
+        <input type="text" id="cardJumpInput" class="search-input" placeholder="${atMax ? `Comparing ${MAX_COMPARE} products — remove one to add another` : 'Add another product to compare…'}" autocomplete="off" ${atMax ? 'disabled' : ''} />
         <div class="card-jump-results" id="cardJumpResults" hidden></div>
       </div>
-      <div class="product-card">
-        <div class="pc-brand"><span class="dot" style="background:${color}"></span>${p.brand||'—'} · ${p.subgroup||'—'}</div>
-        <div class="pc-code">${p.code}</div>
-        <div class="pc-price">${money(price)}</div>
-        <div class="pc-price-sub">${priceLabel()}</div>
-        <div class="pc-controls">
-          <div class="pc-ctrl-group">
-            <span class="wk-label">Price</span>
-            <select id="cardPriceSelect" class="wk-sel pc-price-sel">
-              <option value="rrp" ${state.priceMode==='rrp'?'selected':''}>RRP</option>
-              <option value="d25" ${state.priceMode==='d25'?'selected':''}>25% off</option>
-              <option value="d20" ${state.priceMode==='d20'?'selected':''}>20% off</option>
-              <option value="d15" ${state.priceMode==='d15'?'selected':''}>15% off</option>
-            </select>
-          </div>
-        </div>
-        <div class="pc-stock">${stockBadge(p)}</div>
-        ${p.is_live ? `
-        <div class="pc-qty-row">
-          <div class="qty-step big">
-            <button data-act="dec" ${qty<=0?'disabled':''}>−</button>
-            <span class="qty-num">${qty}</span>
-            <button data-act="inc">+</button>
-          </div>
-          ${qty === 0 ? `<button class="pc-add-btn" data-act="inc">+ Add to quote</button>` : `<span class="pc-in-quote">✓ In quote</span>`}
-        </div>` : `<div class="pc-unavailable">Not available</div>`}
+      <div class="product-cards-row${comparing ? ' compact' : ''}">
+        ${cardsHtml}
       </div>
     `;
 
@@ -783,23 +828,50 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     if (prevP) document.getElementById('cardPrevBtn').addEventListener('click', ()=>openProductCard(prevP.id));
     if (nextP) document.getElementById('cardNextBtn').addEventListener('click', ()=>openProductCard(nextP.id));
 
-    // Compact Price control on the card itself — keeps it "live" while the
-    // main filter toolbar is hidden. A closed dropdown (rather than the full
-    // set of segmented buttons) so a client looking at the screen only sees
-    // the current tier, not the whole discount ladder.
-    document.getElementById('cardPriceSelect').addEventListener('change', e=>{
-      state.priceMode = e.target.value;
-      render();
+    // "Remove from comparison" on each card (only rendered when comparing 2+).
+    cardView.querySelectorAll('.pc-remove').forEach(btn=>{
+      btn.addEventListener('click', ()=> removeFromCompare(btn.dataset.id));
     });
 
-    // Quick jump: find and open any other product without leaving the card
+    // Each card's Price dropdown is independent — a rep can show one product at
+    // RRP and another at 25% off side by side.
+    cardView.querySelectorAll('.pc-price-sel').forEach(sel=>{
+      sel.addEventListener('change', e=>{
+        const ci = cardItems.find(c => String(c.id) === String(sel.dataset.id));
+        if (ci) ci.priceMode = e.target.value;
+        render();
+      });
+    });
+
+    // Each card's own qty stepper / add-to-quote.
+    cardView.querySelectorAll('.pc-qty-row').forEach(row=>{
+      row.addEventListener('click', e=>{
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const id = row.dataset.id;
+        const act = btn.dataset.act;
+        let it = quote.find(q => q.id === id);
+        if (act === 'inc'){
+          if (it) it.qty++; else quote.push({ id, qty: 1 });
+        } else if (act === 'dec' && it){
+          it.qty--;
+          if (it.qty <= 0) quote = quote.filter(q => q.id !== id);
+        }
+        render();
+      });
+    });
+
+    // Quick jump: add another product into the comparison without leaving the card
+    // (rather than replacing what's already shown).
     const jumpInput = document.getElementById('cardJumpInput');
     const jumpResults = document.getElementById('cardJumpResults');
     function renderJumpMatches(){
+      if (cardItems.length >= MAX_COMPARE){ jumpResults.hidden = true; jumpResults.innerHTML = ''; return; }
       const q = jumpInput.value.trim().toLowerCase();
       if (!q){ jumpResults.hidden = true; jumpResults.innerHTML = ''; return; }
+      const shownIds = new Set(cardItems.map(ci => String(ci.id)));
       const matches = allProducts.filter(pp=>{
-        if (pp.id === p.id) return false;
+        if (shownIds.has(String(pp.id))) return false;
         if (!state.showDisc && !pp.is_live) return false;
         return pp.code.toLowerCase().includes(q)
           || (pp.brand && pp.brand.toLowerCase().includes(q))
@@ -816,7 +888,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     jumpInput.addEventListener('keydown', e=>{
       if (e.key === 'Enter'){
         const first = jumpResults.querySelector('.card-jump-row[data-id]');
-        if (first) openProductCard(first.dataset.id);
+        if (first){ addToCompare(first.dataset.id); jumpInput.value = ''; jumpResults.hidden = true; }
       } else if (e.key === 'Escape'){
         jumpInput.value = '';
         jumpResults.hidden = true;
@@ -826,25 +898,8 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     jumpResults.addEventListener('mousedown', e=>{
       // mousedown (not click) so this fires before the input's blur hides the results
       const row = e.target.closest('.card-jump-row[data-id]');
-      if (row) openProductCard(row.dataset.id);
+      if (row){ addToCompare(row.dataset.id); jumpInput.value = ''; }
     });
-
-    const qtyRow = cardView.querySelector('.pc-qty-row');
-    if (qtyRow){
-      qtyRow.addEventListener('click', e=>{
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        const act = btn.dataset.act;
-        let it = quote.find(q => q.id === p.id);
-        if (act === 'inc'){
-          if (it) it.qty++; else quote.push({ id: p.id, qty: 1 });
-        } else if (act === 'dec' && it){
-          it.qty--;
-          if (it.qty <= 0) quote = quote.filter(q => q.id !== p.id);
-        }
-        render();
-      });
-    }
   }
 
   /* ---------------- Quote panel ---------------- */
