@@ -722,8 +722,10 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   function openProductCard(id){
     // Tapping a fresh product from the list always starts a clean single-product view.
     // If this product was priced at a particular tier before (on a card, or in the
-    // quote), reopen it at that same tier rather than resetting to RRP.
-    cardItems = [{ id, priceMode: productPriceOverride[id] || 'rrp' }];
+    // quote), reopen it at that same tier; otherwise match whatever tier the rep is
+    // currently browsing at (the main Price filter) so it never silently disagrees
+    // with the quote panel's own default.
+    cardItems = [{ id, priceMode: productPriceOverride[id] || state.priceMode }];
     render();
   }
   function closeProductCard(){
@@ -733,7 +735,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   function addToCompare(id){
     if (cardItems.some(ci => String(ci.id) === String(id))) return; // already showing
     if (cardItems.length >= MAX_COMPARE) return;
-    cardItems.push({ id, priceMode: productPriceOverride[id] || 'rrp' });
+    cardItems.push({ id, priceMode: productPriceOverride[id] || state.priceMode });
     render();
   }
   function removeFromCompare(id){
