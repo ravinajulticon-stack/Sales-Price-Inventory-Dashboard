@@ -305,26 +305,34 @@ select.wk-sel{
 #addProductBtn{ border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; }
 #addProductBtn:hover{ border-color:var(--blue); }
 
-.so-table{ width:100%; min-width:900px; border-collapse:collapse; font-size:12px; }
+.so-table{ width:100%; min-width:900px; border-collapse:collapse; font-size:12px; table-layout:fixed; }
 .so-table thead th{
   background:rgba(28,28,30,0.8); color:var(--text-3); font-size:10px; font-weight:600; text-transform:uppercase;
   letter-spacing:0.4px; padding:8px 10px; text-align:left; border-bottom:1px solid var(--border);
-  position:sticky; top:0; z-index:2;
+  position:sticky; top:0; z-index:2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.so-table thead th.col-narrow{ text-align:center; width:40px; }
-/* Code/Brand/Category get enough room to show their full text without clipping.
-   Every value column (RRP through Avail.) is the same uniform width as QOH/Alloc./
-   Avail., so the row of boxes lines up cleanly — the table still fits without
+.so-table thead th.col-narrow{ text-align:center; }
+/* table-layout:fixed makes the browser honor these widths exactly (first-row cell
+   widths become the column widths), instead of auto-layout's content-based sizing —
+   which is what let price columns render wider than QOH/Alloc./Avail. even with
+   matching min-width. Code/Brand/Category get enough room to show their full text
+   without clipping. Every value column (RRP through Avail.) is the same uniform
+   width, so the row of boxes lines up cleanly — the table still fits without
    needing to scroll sideways. */
-.so-table th:nth-child(1), .so-table td:nth-child(1){ min-width:195px; }
-.so-table th:nth-child(2), .so-table td:nth-child(2){ min-width:120px; }
-.so-table th:nth-child(3), .so-table td:nth-child(3){ min-width:80px; }
+.so-table th:nth-child(1), .so-table td:nth-child(1){ width:195px; }
+.so-table th:nth-child(2), .so-table td:nth-child(2){ width:120px; }
+.so-table th:nth-child(3), .so-table td:nth-child(3){ width:80px; }
 .so-table th:nth-child(4), .so-table td:nth-child(4),
 .so-table th:nth-child(5), .so-table td:nth-child(5),
 .so-table th:nth-child(6), .so-table td:nth-child(6),
 .so-table th:nth-child(7), .so-table td:nth-child(7),
-.so-table th:nth-child(8), .so-table td:nth-child(8){ min-width:40px; }
-.so-table tbody td{ padding:6px 8px; border-bottom:1px solid var(--border); color:var(--text); }
+.so-table th:nth-child(8), .so-table td:nth-child(8),
+.so-table th:nth-child(9), .so-table td:nth-child(9),
+.so-table th:nth-child(10), .so-table td:nth-child(10),
+.so-table th:nth-child(11), .so-table td:nth-child(11){ width:75px; }
+.so-table th:nth-child(12), .so-table td:nth-child(12){ width:50px; }
+.so-table th:nth-child(13), .so-table td:nth-child(13){ width:45px; }
+.so-table tbody td{ padding:6px 8px; border-bottom:1px solid var(--border); color:var(--text); overflow:hidden; }
 .so-table tbody td.col-narrow{ text-align:center; }
 .so-table tbody tr:hover td{ background:rgba(255,255,255,0.03); }
 table.edit-table input[type="text"], table.edit-table input[type="number"]{
