@@ -312,18 +312,18 @@ select.wk-sel{
   position:sticky; top:0; z-index:2;
 }
 .so-table thead th.col-narrow{ text-align:center; width:40px; }
-/* Code/Brand/Category get enough room to show their full text without clipping;
-   the numeric columns and the icon/checkbox columns (which never need much space)
-   are trimmed down to make that room, so the whole table fits without needing to
-   scroll sideways. */
+/* Code/Brand/Category get enough room to show their full text without clipping.
+   Every value column (RRP through Avail.) is the same uniform width as QOH/Alloc./
+   Avail., so the row of boxes lines up cleanly — the table still fits without
+   needing to scroll sideways. */
 .so-table th:nth-child(1), .so-table td:nth-child(1){ min-width:195px; }
 .so-table th:nth-child(2), .so-table td:nth-child(2){ min-width:120px; }
 .so-table th:nth-child(3), .so-table td:nth-child(3){ min-width:80px; }
-.so-table th:nth-child(4), .so-table td:nth-child(4){ min-width:50px; }
-.so-table th:nth-child(5), .so-table td:nth-child(5){ min-width:58px; }
-.so-table th:nth-child(6), .so-table td:nth-child(6){ min-width:54px; }
-.so-table th:nth-child(7), .so-table td:nth-child(7){ min-width:54px; }
-.so-table th:nth-child(8), .so-table td:nth-child(8){ min-width:52px; }
+.so-table th:nth-child(4), .so-table td:nth-child(4),
+.so-table th:nth-child(5), .so-table td:nth-child(5),
+.so-table th:nth-child(6), .so-table td:nth-child(6),
+.so-table th:nth-child(7), .so-table td:nth-child(7),
+.so-table th:nth-child(8), .so-table td:nth-child(8){ min-width:40px; }
 .so-table tbody td{ padding:6px 8px; border-bottom:1px solid var(--border); color:var(--text); }
 .so-table tbody td.col-narrow{ text-align:center; }
 .so-table tbody tr:hover td{ background:rgba(255,255,255,0.03); }
