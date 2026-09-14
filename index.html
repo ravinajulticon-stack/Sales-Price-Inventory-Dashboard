@@ -274,6 +274,7 @@ select.wk-sel{
 .quote-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:12px; }
 .quote-row .qcode{ font-weight:600; flex:1; min-width:0; color:var(--text); }
 .quote-row .qcode small{ display:block; font-weight:400; color:var(--text-2); font-size:11px; }
+.q-price-sel{ min-width:88px; font-size:11px; padding:4px 8px; flex-shrink:0; }
 .qty-step{ display:flex; align-items:center; gap:6px; }
 .qty-step button{ width:22px; height:22px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); cursor:pointer; font-size:13px; line-height:1; font-family:inherit; }
 .qty-step button:hover{ border-color:var(--blue); }
@@ -918,13 +919,20 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     const rowsHtml = quote.map(q=>{
       const p = allProducts.find(pp=>pp.id===q.id);
       if(!p) return '';
-      // Use whatever tier was actually shown for this product (set on its card),
-      // falling back to the global tier for items added straight from the list.
-      const mode = productPriceOverride[p.id];
+      // Use whatever tier was actually shown for this product (set on its card
+      // or here in the quote itself), falling back to the global tier for
+      // items added straight from the list and never touched since.
+      const mode = productPriceOverride[p.id] || state.priceMode;
       const unit = getPrice(p, mode) || 0;
       total += unit * q.qty;
       return `<div class="quote-row" data-id="${p.id}">
-        <div class="qcode">${p.code}<small>${p.brand||''} · ${priceLabel(mode)}</small></div>
+        <div class="qcode">${p.code}<small>${p.brand||''}</small></div>
+        <select class="wk-sel q-price-sel" data-id="${p.id}">
+          <option value="rrp" ${mode==='rrp'?'selected':''}>RRP</option>
+          <option value="d25" ${mode==='d25'?'selected':''}>25% off</option>
+          <option value="d20" ${mode==='d20'?'selected':''}>20% off</option>
+          <option value="d15" ${mode==='d15'?'selected':''}>15% off</option>
+        </select>
         <div class="qty-step">
           <button data-act="dec">−</button>
           <span class="qty-num">${q.qty}</span>
@@ -952,6 +960,17 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   document.getElementById('quoteBarHead').addEventListener('click', ()=>{
     quoteOpen = !quoteOpen;
     document.getElementById('quotePanel').hidden = !quoteOpen;
+  });
+
+  document.getElementById('quotePanel').addEventListener('change', e=>{
+    const sel = e.target.closest('.q-price-sel');
+    if (!sel) return;
+    const id = sel.dataset.id;
+    productPriceOverride[id] = sel.value;
+    // If this product's card (or compare card) is currently open, keep it in sync.
+    const ci = cardItems.find(c => String(c.id) === String(id));
+    if (ci) ci.priceMode = sel.value;
+    render();
   });
 
   document.getElementById('quotePanel').addEventListener('click', e=>{
