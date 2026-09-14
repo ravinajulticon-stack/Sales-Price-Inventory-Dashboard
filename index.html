@@ -193,6 +193,7 @@ select.wk-sel{
 .qty-step.big .qty-num{ font-size:20px; font-weight:600; min-width:28px; text-align:center; display:inline-block; }
 .pc-add-btn{ background:var(--blue); color:#fff; border:none; padding:12px 24px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
 .pc-add-btn:hover{ background:var(--blue-light); }
+.pc-in-quote{ color:var(--green); font-size:14px; font-weight:600; }
 .pc-unavailable{ color:var(--text-3); font-size:14px; margin-top:16px; }
 
 .card-jump{ position:relative; max-width:420px; margin:0 auto 18px; }
@@ -773,7 +774,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
             <span class="qty-num">${qty}</span>
             <button data-act="inc">+</button>
           </div>
-          <button class="pc-add-btn" data-act="inc">${qty>0 ? '+ Add another' : '+ Add to quote'}</button>
+          ${qty === 0 ? `<button class="pc-add-btn" data-act="inc">+ Add to quote</button>` : `<span class="pc-in-quote">✓ In quote</span>`}
         </div>` : `<div class="pc-unavailable">Not available</div>`}
       </div>
     `;
