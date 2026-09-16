@@ -534,8 +534,6 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
   <div class="login-card">
     <h1>DDL Product Price &amp; Stock</h1>
     <p class="sub">Reps Dashboard. Please sign in to continue.</p>
-    <label for="loginEmail">Email</label>
-    <input type="email" id="loginEmail" autocomplete="username" spellcheck="false" />
     <label for="loginPass">Password</label>
     <input type="password" id="loginPass" autocomplete="current-password" />
     <button id="loginBtn">Sign in</button>
@@ -552,6 +550,10 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
      This page is public, so it cannot keep a secret: anyone can read SUPA_KEY
      out of the source. Access is therefore granted to the signed-in user, not
      to the key. On its own SUPA_KEY can read nothing. */
+  /* Reps type a password only. Supabase Auth needs an email, so the shared
+     account is named here. It is not a secret: the password is what is checked,
+     and it is checked by the server, not by this page. */
+  const REP_ACCOUNT = 'reps@digitaldoorlocks.com.au';
   const SESSION_KEY = 'ddl_session';
   let session = null;
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
@@ -595,7 +597,7 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
   function showLogin(msg){
     document.getElementById('loginOverlay').hidden = false;
     document.getElementById('loginErr').textContent = msg || '';
-    document.getElementById('loginEmail').focus();
+    document.getElementById('loginPass').focus();
   }
 
   function signOut(){ saveSession(null); location.reload(); }
@@ -1330,26 +1332,23 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
 
   async function attemptLogin(){
     const btn = document.getElementById('loginBtn');
-    const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPass').value;
-    if (!email || !pass){ document.getElementById('loginErr').textContent = 'Enter your email and password.'; return; }
+    if (!pass){ document.getElementById('loginErr').textContent = 'Enter the password.'; return; }
     btn.disabled = true; btn.textContent = 'Signing in…';
     try{
-      await signIn(email, pass);
+      await signIn(REP_ACCOUNT, pass);
       document.getElementById('loginPass').value = '';
       document.getElementById('loginOverlay').hidden = true;
       loadProducts();
     } catch(err){
-      document.getElementById('loginErr').textContent = 'That email and password did not work.';
+      document.getElementById('loginErr').textContent = 'That password did not work.';
       console.error(err);
     } finally {
       btn.disabled = false; btn.textContent = 'Sign in';
     }
   }
   document.getElementById('loginBtn').addEventListener('click', attemptLogin);
-  ['loginEmail','loginPass'].forEach(id=>{
-    document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
-  });
+  document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
 
   (async function start(){
     if (await ensureSession()){
