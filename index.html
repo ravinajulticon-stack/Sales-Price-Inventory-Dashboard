@@ -371,6 +371,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     <span id="syncText">Loading…</span>
   </div>
   <button class="ic-btn-refresh" id="refreshBtn" title="Reload latest data">↻</button>
+  <button class="signout-btn" id="signOutBtn" title="Sign out">Sign out</button>
 </div>
 
 <div class="toolbar">
@@ -491,11 +492,113 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   <div id="quotePanel" hidden></div>
 </div>
 
+<style>
+#loginOverlay{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background:var(--bg); padding:24px;
+}
+#loginOverlay[hidden]{ display:none !important; }
+.login-card{
+  width:100%; max-width:360px; background:var(--surface-1); border:1px solid var(--border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:32px 28px;
+}
+.login-card h1{ font-size:19px; margin:0 0 4px; color:var(--text); font-weight:600; }
+.login-card .sub{ font-size:13px; color:var(--text-2); margin:0 0 24px; }
+.login-card label{ display:block; font-size:12px; color:var(--text-2); margin:0 0 6px; }
+.login-card input{
+  width:100%; box-sizing:border-box; background:var(--surface-2); color:var(--text);
+  border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+  padding:10px 12px; font-size:14px; margin:0 0 16px; font-family:inherit;
+}
+.login-card input:focus{ outline:none; border-color:var(--blue); }
+.login-card button{
+  width:100%; background:var(--blue); color:#fff; border:0; border-radius:var(--radius-sm);
+  padding:11px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.login-card button:hover{ background:var(--blue-light); }
+.login-card button:disabled{ opacity:.6; cursor:default; }
+.login-err{ color:var(--red); font-size:12.5px; min-height:17px; margin:12px 0 0; }
+.signout-btn{
+  background:transparent; border:1px solid var(--border-strong); color:var(--text-2);
+  border-radius:var(--radius-sm); padding:4px 10px; font-size:12px; cursor:pointer;
+  font-family:inherit; margin-left:10px;
+}
+.signout-btn:hover{ color:var(--text); border-color:var(--text-3); }
+/* Stock columns on the Detail tab: fed from Unleashed, shown but not editable. */
+td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums; }
+</style>
+
+<!-- Visible by default so the dashboard never flashes before the session is
+     checked. start() hides it immediately when a valid session exists. -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h1>DDL Product Price &amp; Stock</h1>
+    <p class="sub">Reps Dashboard. Please sign in to continue.</p>
+    <label for="loginEmail">Email</label>
+    <input type="email" id="loginEmail" autocomplete="username" spellcheck="false" />
+    <label for="loginPass">Password</label>
+    <input type="password" id="loginPass" autocomplete="current-password" />
+    <button id="loginBtn">Sign in</button>
+    <p class="login-err" id="loginErr"></p>
+  </div>
+</div>
+
 <script>
   const SUPA_URL = 'https://tfpgywqmwnjesesfcmcg.supabase.co';
   const SUPA_KEY = 'sb_publishable_j6MIouzm484dXuHqH76JNw_39ol8cBx';
-  const SH = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
   const DETAIL_PASSCODE = 'ddl2026';
+
+  /* ---------------- Sign in ----------------
+     This page is public, so it cannot keep a secret: anyone can read SUPA_KEY
+     out of the source. Access is therefore granted to the signed-in user, not
+     to the key. On its own SUPA_KEY can read nothing. */
+  const SESSION_KEY = 'ddl_session';
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
+
+  function SH(){
+    return { apikey: SUPA_KEY,
+             Authorization: 'Bearer ' + ((session && session.access_token) || SUPA_KEY) };
+  }
+
+  function saveSession(s){
+    session = s ? Object.assign({}, s, { expires_at: Date.now() + (s.expires_in || 3600) * 1000 }) : null;
+    try {
+      if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch(e){}
+  }
+
+  async function authCall(grant, body){
+    const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=${grant}`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const d = await r.json().catch(()=>({}));
+    if (!r.ok || !d.access_token) throw new Error(d.error_description || d.msg || d.error || 'Sign in failed');
+    saveSession(d);
+    return d;
+  }
+
+  const signIn = (email, password) => authCall('password', { email, password });
+
+  /* Access tokens last an hour and the page polls every five minutes, so a
+     dashboard left open on a desk must refresh itself or it starts 401ing. */
+  async function ensureSession(){
+    if (!session) return false;
+    if (Date.now() < session.expires_at - 5 * 60 * 1000) return true;
+    try { await authCall('refresh_token', { refresh_token: session.refresh_token }); return true; }
+    catch(e){ saveSession(null); return false; }
+  }
+
+  function showLogin(msg){
+    document.getElementById('loginOverlay').hidden = false;
+    document.getElementById('loginErr').textContent = msg || '';
+    document.getElementById('loginEmail').focus();
+  }
+
+  function signOut(){ saveSession(null); location.reload(); }
 
   const BRAND_COLORS = {
     'Philips Locks': 'var(--brand-1)',
@@ -575,7 +678,9 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
   async function loadProducts(){
     document.getElementById('syncText').textContent = 'Loading…';
     try{
-      const r = await fetch(`${SUPA_URL}/rest/v1/products?select=*&limit=10000&order=brand,code`, { headers: SH });
+      if (!(await ensureSession())){ showLogin('Your session expired. Please sign in again.'); return; }
+      const r = await fetch(`${SUPA_URL}/rest/v1/products?select=*&limit=10000&order=brand,code`, { headers: SH() });
+      if (r.status === 401 || r.status === 403){ saveSession(null); showLogin('Your session expired. Please sign in again.'); return; }
       const rows = await r.json();
       allProducts = Array.isArray(rows) ? rows : [];
       populateFilters();
@@ -587,9 +692,17 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
       }, 0);
       const hasStock = allProducts.some(p => p.qoh !== null && p.qoh !== undefined);
       const dot = document.getElementById('syncDot');
+      // Stock and prices move on different clocks: stock_synced_at is the feed,
+      // updated_at is the last time a person edited a price.
+      const synced = allProducts.reduce((max,p)=>{
+        const t = p.stock_synced_at ? new Date(p.stock_synced_at).getTime() : 0;
+        return t > max ? t : max;
+      }, 0);
       if (hasStock){
         dot.classList.remove('stale');
-        document.getElementById('syncText').textContent = 'Prices & stock updated ' + (latest? fmtDate(latest) : 'just now');
+        document.getElementById('syncText').textContent =
+          'Stock ' + (synced ? fmtDate(synced) : 'just now') +
+          ' · prices ' + (latest ? fmtDate(latest) : 'just now');
       } else {
         dot.classList.add('stale');
         document.getElementById('syncText').textContent = 'Prices updated ' + (latest? fmtDate(latest) : 'just now') + ' — live stock feed not connected yet';
@@ -1104,9 +1217,11 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
         <td><input type="number" step="0.01" data-f="price_25" value="${r.price_25 ?? ''}" /></td>
         <td><input type="number" step="0.01" data-f="price_20" value="${r.price_20 ?? ''}" /></td>
         <td><input type="number" step="0.01" data-f="price_15" value="${r.price_15 ?? ''}" /></td>
-        <td class="col-narrow"><input type="number" step="1" data-f="qoh" value="${r.qoh ?? ''}" /></td>
-        <td class="col-narrow"><input type="number" step="1" data-f="allocation" value="${r.allocation ?? ''}" /></td>
-        <td class="col-narrow"><input type="number" step="1" data-f="available_qty" value="${r.available_qty ?? ''}" /></td>
+        <!-- Fed from Unleashed every 15 minutes. Shown, never edited: anything
+             typed here would be overwritten at the next sync. -->
+        <td class="col-narrow fed"><span title="From Unleashed">${r.qoh ?? '—'}</span></td>
+        <td class="col-narrow fed"><span title="From Unleashed">${r.allocation ?? '—'}</span></td>
+        <td class="col-narrow fed"><span title="From Unleashed">${r.available_qty ?? '—'}</span></td>
         <td class="col-narrow" style="text-align:center;"><input class="live-chk" type="checkbox" data-f="is_live" ${r.is_live!==false?'checked':''} /></td>
         <td class="col-narrow"><button class="del-btn" data-key="${key}" title="Delete">🗑</button></td>
       </tr>`;
@@ -1122,7 +1237,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     if(!row) return;
     const field = e.target.dataset.f;
     let val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    if (['rrp','rrp_exgst','price_25','price_20','price_15','qoh','allocation','available_qty'].includes(field)){
+    if (['rrp','rrp_exgst','price_25','price_20','price_15'].includes(field)){
       val = num(val);
     }
     row[field] = val;
@@ -1144,7 +1259,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     }
     if (!confirm(`Delete ${row.code} from the price list? This can't be undone.`)) return;
     try{
-      const r = await fetch(`${SUPA_URL}/rest/v1/products?id=eq.${row.id}`, { method:'DELETE', headers: SH });
+      const r = await fetch(`${SUPA_URL}/rest/v1/products?id=eq.${row.id}`, { method:'DELETE', headers: SH() });
       if (!r.ok) throw new Error('delete failed');
       setEditMsg('Deleted ' + row.code);
       await loadProducts();
@@ -1179,7 +1294,9 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
         code: row.code, brand: row.brand||null, subgroup: row.subgroup||null,
         rrp: row.rrp, rrp_exgst: row.rrp_exgst,
         price_25: row.price_25, price_20: row.price_20, price_15: row.price_15,
-        qoh: row.qoh, allocation: row.allocation, available_qty: row.available_qty,
+        // qoh, allocation and available_qty are owned by the Unleashed feed.
+        // They are deliberately not sent: the database refuses them from this
+        // role, so including them would fail every save.
         is_live: row.is_live !== false,
         updated_at: new Date().toISOString(),
       };
@@ -1187,13 +1304,13 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
       try{
         if (row._new){
           const r = await fetch(`${SUPA_URL}/rest/v1/products`, {
-            method:'POST', headers:{...SH, 'Content-Type':'application/json', Prefer:'return=representation'},
+            method:'POST', headers:{...SH(), 'Content-Type':'application/json', Prefer:'return=representation'},
             body: JSON.stringify(payload)
           });
           if(!r.ok) throw new Error(await r.text());
         } else {
           const r = await fetch(`${SUPA_URL}/rest/v1/products?id=eq.${row.id}`, {
-            method:'PATCH', headers:{...SH, 'Content-Type':'application/json', Prefer:'return=representation'},
+            method:'PATCH', headers:{...SH(), 'Content-Type':'application/json', Prefer:'return=representation'},
             body: JSON.stringify(payload)
           });
           if(!r.ok) throw new Error(await r.text());
@@ -1208,9 +1325,43 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     await loadProducts();
   });
 
-  loadProducts();
+  /* ---------------- Start up ---------------- */
+  document.getElementById('signOutBtn').addEventListener('click', signOut);
+
+  async function attemptLogin(){
+    const btn = document.getElementById('loginBtn');
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    if (!email || !pass){ document.getElementById('loginErr').textContent = 'Enter your email and password.'; return; }
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try{
+      await signIn(email, pass);
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginOverlay').hidden = true;
+      loadProducts();
+    } catch(err){
+      document.getElementById('loginErr').textContent = 'That email and password did not work.';
+      console.error(err);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }
+  }
+  document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+  ['loginEmail','loginPass'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+  });
+
+  (async function start(){
+    if (await ensureSession()){
+      document.getElementById('loginOverlay').hidden = true;
+      loadProducts();
+    } else {
+      showLogin();
+    }
+  })();
+
   // Quietly refresh every 5 minutes so a dashboard left open during a meeting stays current
-  setInterval(loadProducts, 5 * 60 * 1000);
+  setInterval(()=>{ if (session) loadProducts(); }, 5 * 60 * 1000);
 </script>
 </body>
 </html>
