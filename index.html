@@ -83,6 +83,19 @@ body {
 }
 .ic-btn-refresh:hover{ border-color:var(--blue); background:var(--surface-3); }
 
+/* On a phone the macOS window chrome stops being decoration and starts eating
+   the header: the title wrapped to four lines and pushed Sign out off screen.
+   Title, Refresh and Sign out share row one; the sync status gets row two. */
+@media (max-width:700px){
+  .titlebar{ height:auto; min-height:48px; padding:8px 12px; gap:10px; flex-wrap:wrap; }
+  .traffic-lights{ display:none; }
+  .titlebar-center{ justify-content:flex-start; flex:1 1 auto; min-width:0; }
+  .titlebar-title{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .titlebar-sub{ display:none; }
+  .sync-status{ order:3; flex:1 0 100%; max-width:none; white-space:normal; }
+  .signout-btn{ margin-left:0; }
+}
+
 /* ── TOOLBAR ── */
 .toolbar {
   background: rgba(44,44,46,0.7);
@@ -499,6 +512,9 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
 }
 #loginOverlay[hidden]{ display:none !important; }
 .login-card{
+  /* box-sizing is not global on this page, so without it the padding pushes the
+     card past the viewport and it gets clipped on a phone. */
+  box-sizing:border-box;
   width:100%; max-width:360px; background:var(--surface-1); border:1px solid var(--border);
   border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:32px 28px;
 }
@@ -653,7 +669,14 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
   }
   function fmtDate(d){
     if (!d) return null;
-    return new Date(d).toLocaleString('en-AU', { dateStyle:'medium', timeStyle:'short' });
+    const t = new Date(d);
+    // Stock refreshes every few minutes, so the date is nearly always today and
+    // repeating it twice in the status bar just pushes the line off a phone.
+    const today = new Date();
+    if (t.toDateString() === today.toDateString()){
+      return t.toLocaleTimeString('en-AU', { timeStyle:'short' });
+    }
+    return t.toLocaleString('en-AU', { dateStyle:'medium', timeStyle:'short' });
   }
   function num(v){
     if (v === '' || v === null || v === undefined) return null;
