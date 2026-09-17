@@ -414,6 +414,7 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     <option value="ok">Stock: In Stock</option>
     <option value="low">Stock: Low Stock</option>
     <option value="out">Stock: Out of Stock</option>
+    <option value="discontinued">Stock: Not Available</option>
   </select>
   <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In Stock Only</label>
   <label class="chk"><input type="checkbox" id="showDiscChk" /> Show Discontinued</label>
@@ -876,7 +877,10 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
     document.getElementById('priceBanner').innerHTML = `Showing: <b>${priceLabel()}</b>`;
 
     let rows = allProducts.filter(p=>{
-      if (!state.showDisc && !p.is_live) return false;
+      // Picking "Not Available" in the Stock filter is an explicit request to see
+      // discontinued items, so it overrides the "Show Discontinued" checkbox —
+      // otherwise choosing that option with the checkbox off would just show nothing.
+      if (!state.showDisc && !p.is_live && state.stockStatus !== 'discontinued') return false;
       if (state.brand && p.brand !== state.brand) return false;
       if (state.subgroup && p.subgroup !== state.subgroup) return false;
       if (state.search && !p.code.toLowerCase().includes(state.search.toLowerCase())) return false;
