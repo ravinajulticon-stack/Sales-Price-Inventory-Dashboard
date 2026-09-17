@@ -409,6 +409,12 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
     <option value="asc">Stock: Low → High</option>
     <option value="desc">Stock: High → Low</option>
   </select>
+  <select id="stockStatusSelect" class="wk-sel">
+    <option value="">Stock: All</option>
+    <option value="ok">Stock: In Stock</option>
+    <option value="low">Stock: Low Stock</option>
+    <option value="out">Stock: Out of Stock</option>
+  </select>
   <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In Stock Only</label>
   <label class="chk"><input type="checkbox" id="showDiscChk" /> Show Discontinued</label>
   <div class="toolbar-sep"></div>
@@ -647,15 +653,24 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
     priceMode: 'rrp',
     sortPrice: '', // '', 'asc', 'desc' — sorts the list by the currently shown price
     sortStock: '', // '', 'asc', 'desc' — sorts the list by available stock; takes priority over sortPrice if both are set
+    stockStatus: '', // '', 'out', 'low', 'ok' — narrows the list to exactly one of the badges shown per row
   };
-  // Manual pins for the Category filter's order: [firstCode, secondCode] means
-  // firstCode must always sort above secondCode, regardless of plain alphabetical
-  // order. Add more pairs here if Sam wants other categories reordered.
-  const CATEGORY_PINS = [['7000 Series', 'Valis']];
+  // Manual pins for the Category filter's order: [firstPrefix, secondPrefix]
+  // means any category starting with firstPrefix must always sort above any
+  // category starting with secondPrefix, regardless of plain alphabetical
+  // order. Matching is by prefix (not exact text) and ignores case/spacing,
+  // so "Valis", "Valis Series", "7000 Series" etc. all match reliably even if
+  // the exact wording in the data isn't identical to what's written here.
+  // Add more pairs if Sam wants other categories reordered.
+  const CATEGORY_PINS = [['7000', 'valis']];
+  function normCat(s){ return (s||'').trim().toLowerCase(); }
   function categorySortCompare(a, b){
-    for (const [first, second] of CATEGORY_PINS){
-      if (a === first && b === second) return -1;
-      if (a === second && b === first) return 1;
+    const na = normCat(a), nb = normCat(b);
+    for (const [firstPrefix, secondPrefix] of CATEGORY_PINS){
+      const aIsFirst = na.startsWith(firstPrefix), aIsSecond = na.startsWith(secondPrefix);
+      const bIsFirst = nb.startsWith(firstPrefix), bIsSecond = nb.startsWith(secondPrefix);
+      if (aIsFirst && bIsSecond) return -1;
+      if (aIsSecond && bIsFirst) return 1;
     }
     return a.localeCompare(b);
   }
@@ -812,16 +827,28 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
          : (p.qoh !== null && p.qoh !== undefined) ? p.qoh : null;
   }
 
+  // Same buckets the row badge shows, exposed as one value so the Stock
+  // status filter can select exactly what a badge displays.
+  function stockStatus(p){
+    if (!p.is_live) return 'discontinued';
+    const qty = stockQty(p);
+    if (qty === null) return 'nodata';
+    if (qty <= 0) return 'out';
+    if (qty <= 10) return 'low';
+    return 'ok';
+  }
+
   function stockBadge(p){
-    if (!p.is_live){
+    const status = stockStatus(p);
+    const qty = stockQty(p);
+    if (status === 'discontinued'){
       return `<span class="status discontinued"><span class="idot"></span>Not available</span>`;
     }
-    const qty = stockQty(p);
-    if (qty === null){
+    if (status === 'nodata'){
       return `<span class="status muted"><span class="idot"></span>Check with office</span>`;
     }
-    if (qty <= 0) return `<span class="status bad"><span class="idot"></span>Out of stock</span>`;
-    if (qty <= 10) return `<span class="status warn"><span class="idot"></span>Low stock · ${qty}</span>`;
+    if (status === 'out') return `<span class="status bad"><span class="idot"></span>Out of stock</span>`;
+    if (status === 'low') return `<span class="status warn"><span class="idot"></span>Low stock · ${qty}</span>`;
     return `<span class="status good"><span class="idot"></span>In stock · ${qty}</span>`;
   }
 
@@ -854,6 +881,7 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
       if (state.subgroup && p.subgroup !== state.subgroup) return false;
       if (state.search && !p.code.toLowerCase().includes(state.search.toLowerCase())) return false;
       if (state.stockOnly && !isInStock(p)) return false;
+      if (state.stockStatus && stockStatus(p) !== state.stockStatus) return false;
       return true;
     });
     rows.sort((a,b)=>{
@@ -920,6 +948,7 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
   document.getElementById('subgroupSelect').addEventListener('change', e=>{ state.subgroup = e.target.value; render(); });
   document.getElementById('sortPriceSelect').addEventListener('change', e=>{ state.sortPrice = e.target.value; render(); });
   document.getElementById('sortStockSelect').addEventListener('change', e=>{ state.sortStock = e.target.value; render(); });
+  document.getElementById('stockStatusSelect').addEventListener('change', e=>{ state.stockStatus = e.target.value; render(); });
   document.getElementById('stockOnlyChk').addEventListener('change', e=>{ state.stockOnly = e.target.checked; render(); });
   document.getElementById('showDiscChk').addEventListener('change', e=>{ state.showDisc = e.target.checked; render(); });
   document.getElementById('refreshBtn').addEventListener('click', loadProducts);
