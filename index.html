@@ -399,6 +399,16 @@ table.edit-table tr.dirty td{ background:rgba(255,159,10,0.08); }
 <div class="toolbar" id="filterToolbar">
   <input type="text" id="searchInput" class="search-input" placeholder="Search product code…" />
   <select id="subgroupSelect" class="wk-sel"><option value="">All Categories</option></select>
+  <select id="sortPriceSelect" class="wk-sel">
+    <option value="">Sort: Price</option>
+    <option value="asc">Price: Low → High</option>
+    <option value="desc">Price: High → Low</option>
+  </select>
+  <select id="sortStockSelect" class="wk-sel">
+    <option value="">Sort: Stock</option>
+    <option value="asc">Stock: Low → High</option>
+    <option value="desc">Stock: High → Low</option>
+  </select>
   <label class="chk"><input type="checkbox" id="stockOnlyChk" /> In Stock Only</label>
   <label class="chk"><input type="checkbox" id="showDiscChk" /> Show Discontinued</label>
   <div class="toolbar-sep"></div>
@@ -635,7 +645,20 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
     stockOnly: false,
     showDisc: false,
     priceMode: 'rrp',
+    sortPrice: '', // '', 'asc', 'desc' — sorts the list by the currently shown price
+    sortStock: '', // '', 'asc', 'desc' — sorts the list by available stock; takes priority over sortPrice if both are set
   };
+  // Manual pins for the Category filter's order: [firstCode, secondCode] means
+  // firstCode must always sort above secondCode, regardless of plain alphabetical
+  // order. Add more pairs here if Sam wants other categories reordered.
+  const CATEGORY_PINS = [['7000 Series', 'Valis']];
+  function categorySortCompare(a, b){
+    for (const [first, second] of CATEGORY_PINS){
+      if (a === first && b === second) return -1;
+      if (a === second && b === first) return 1;
+    }
+    return a.localeCompare(b);
+  }
   let quote = []; // { id, tier, qty } — each line is one product AT one price tier, so
                    // the same product can sit in the quote twice at two different tiers
   let quoteOpen = false;
@@ -747,7 +770,7 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
     brands.forEach(b => pillsEl.appendChild(makePill(b, b, BRAND_COLORS[b] || 'var(--text-3)')));
 
     const sub = document.getElementById('subgroupSelect');
-    const subgroups = [...new Set(allProducts.map(p=>p.subgroup).filter(Boolean))].sort();
+    const subgroups = [...new Set(allProducts.map(p=>p.subgroup).filter(Boolean))].sort(categorySortCompare);
     const prevVal = sub.value;
     sub.innerHTML = '<option value="">All Categories</option>' + subgroups.map(s=>`<option value="${s}">${s}</option>`).join('');
     sub.value = prevVal;
@@ -782,12 +805,18 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
     return ex;
   }
 
+  // Available Qty is the number that actually matters for "can I sell this
+  // right now" — fall back to QOH only if Available Qty hasn't come through yet.
+  function stockQty(p){
+    return (p.available_qty !== null && p.available_qty !== undefined) ? p.available_qty
+         : (p.qoh !== null && p.qoh !== undefined) ? p.qoh : null;
+  }
+
   function stockBadge(p){
     if (!p.is_live){
       return `<span class="status discontinued"><span class="idot"></span>Not available</span>`;
     }
-    const qty = (p.available_qty !== null && p.available_qty !== undefined) ? p.available_qty
-              : (p.qoh !== null && p.qoh !== undefined) ? p.qoh : null;
+    const qty = stockQty(p);
     if (qty === null){
       return `<span class="status muted"><span class="idot"></span>Check with office</span>`;
     }
@@ -797,9 +826,17 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
   }
 
   function isInStock(p){
-    const qty = (p.available_qty !== null && p.available_qty !== undefined) ? p.available_qty
-              : (p.qoh !== null && p.qoh !== undefined) ? p.qoh : null;
+    const qty = stockQty(p);
     return qty !== null && qty > 0;
+  }
+
+  // Nulls (no price / no stock data yet) always sort to the bottom, whichever
+  // direction is chosen, so a rep sorting "low to high" doesn't see blanks first.
+  function compareNullableNumeric(av, bv, dir){
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return dir === 'desc' ? (bv - av) : (av - bv);
   }
 
   /* ---------------- Overview render ---------------- */
@@ -819,7 +856,19 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
       if (state.stockOnly && !isInStock(p)) return false;
       return true;
     });
-    rows.sort((a,b)=> (a.brand||'').localeCompare(b.brand||'') || a.code.localeCompare(b.code));
+    rows.sort((a,b)=>{
+      // Stock sort takes priority if both are set — "what's running low" is the
+      // more common reason to sort, so it wins; Price still applies as a tiebreak.
+      if (state.sortStock){
+        const c = compareNullableNumeric(stockQty(a), stockQty(b), state.sortStock);
+        if (c !== 0) return c;
+      }
+      if (state.sortPrice){
+        const c = compareNullableNumeric(getPrice(a), getPrice(b), state.sortPrice);
+        if (c !== 0) return c;
+      }
+      return (a.brand||'').localeCompare(b.brand||'') || a.code.localeCompare(b.code);
+    });
 
     const tbody = document.getElementById('tbody');
     const emptyNote = document.getElementById('emptyNote');
@@ -869,6 +918,8 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
 
   document.getElementById('searchInput').addEventListener('input', e=>{ state.search = e.target.value; render(); });
   document.getElementById('subgroupSelect').addEventListener('change', e=>{ state.subgroup = e.target.value; render(); });
+  document.getElementById('sortPriceSelect').addEventListener('change', e=>{ state.sortPrice = e.target.value; render(); });
+  document.getElementById('sortStockSelect').addEventListener('change', e=>{ state.sortStock = e.target.value; render(); });
   document.getElementById('stockOnlyChk').addEventListener('change', e=>{ state.stockOnly = e.target.checked; render(); });
   document.getElementById('showDiscChk').addEventListener('change', e=>{ state.showDisc = e.target.checked; render(); });
   document.getElementById('refreshBtn').addEventListener('click', loadProducts);
