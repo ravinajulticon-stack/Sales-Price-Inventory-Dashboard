@@ -384,7 +384,7 @@ table.edit-table tr.dirty td{ background:rgba(255,149,0,0.08); }
     <span id="syncText">Loading…</span>
   </div>
   <button class="ic-btn-refresh" id="refreshBtn" title="Reload latest data">↻</button>
-  <button class="signout-btn" id="signOutBtn" title="Sign out">Sign out</button>
+  <button class="signout-btn" id="signOutBtn" title="Sign Out">Sign Out</button>
 </div>
 
 <div class="toolbar">
@@ -569,7 +569,7 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
     <p class="sub">Reps Dashboard. Please sign in to continue.</p>
     <label for="loginPass">Password</label>
     <input type="password" id="loginPass" autocomplete="current-password" />
-    <button id="loginBtn">Sign in</button>
+    <button id="loginBtn">Sign In</button>
     <p class="login-err" id="loginErr"></p>
   </div>
 </div>
@@ -1451,7 +1451,7 @@ td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums
       document.getElementById('loginErr').textContent = 'That password did not work.';
       console.error(err);
     } finally {
-      btn.disabled = false; btn.textContent = 'Sign in';
+      btn.disabled = false; btn.textContent = 'Sign In';
     }
   }
   document.getElementById('loginBtn').addEventListener('click', attemptLogin);
