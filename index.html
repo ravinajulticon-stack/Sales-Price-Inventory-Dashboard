@@ -560,6 +560,26 @@ table.edit-table tr.dirty td{ background:rgba(255,149,0,0.08); }
 /* Stock columns on the Detail tab: fed from Unleashed, shown but not editable. */
 td.fed{ color:var(--text-2); text-align:right; font-variant-numeric:tabular-nums; }
 </style>
+<style>
+/* ===== Colours matched to the Philips MySmartLocks website: navy header, bright blue accents ===== */
+:root{
+  --blue:#0a4fe1; --blue-light:#0843c4;
+  --bg:#f4f5fa; --text:#14123a; --text-2:#48405f; --text-3:#898398;
+}
+.titlebar{ background:linear-gradient(90deg,#010f60 0%,#011389 45%,#0218c8 100%); border-bottom:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+.titlebar::before{ content:""; position:absolute; left:0; right:0; top:0; height:4px; background:linear-gradient(90deg,#0a4fe1,#41b3f5); }
+.traffic-lights{ display:none; }
+.titlebar-title{ color:#fff; font-size:14px; }
+.titlebar-sub{ color:rgba(255,255,255,.65); }
+.sync-status{ color:#c9d0f5; }
+.ic-btn-refresh, .signout-btn{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.28); color:#fff; }
+.ic-btn-refresh:hover, .signout-btn:hover{ background:rgba(255,255,255,.22); border-color:#fff; color:#fff; }
+.seg-btn.active{ background:linear-gradient(90deg,#0a4fe1,#2b84eb); color:#fff; box-shadow:0 1px 6px rgba(10,79,225,.35); }
+.pill.active{ background:linear-gradient(90deg,#0a4fe1,#2b84eb); border-color:#0a4fe1; }
+.pc-add-btn, .gate button, #saveAllBtn, .login-card button{ background:linear-gradient(90deg,#0a4fe1,#2b84eb); }
+.pc-add-btn:hover, .gate button:hover, #saveAllBtn:hover, .login-card button:hover{ background:linear-gradient(90deg,#0843c4,#1e6be6); }
+table.edit-table input:focus{ box-shadow:0 0 0 1.5px rgba(10,79,225,.35); }
+</style>
 
 <!-- Visible by default so the dashboard never flashes before the session is
      checked. start() hides it immediately when a valid session exists. -->
